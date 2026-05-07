@@ -33,8 +33,8 @@ export class TelegramBotService {
 
     // Dynamically build command menu
     const commands = [
-      { command: 'get', description: 'Get current prices' },
-      { command: 'stats', description: '24h stats' },
+      //{ command: 'get', description: 'Get current prices' },
+      //{ command: 'stats', description: '24h stats' },
       { command: 'predict', description: 'Predict next 24h price' }
     ];
     if (this.config.symbols.length > 1) {
@@ -172,9 +172,9 @@ export class TelegramBotService {
         for (const symbol of symbolsToFetch) {
           try {
             await this.bot.sendMessage(chatId, `⏳ Generating prediction chart for ${symbol}...`);
-            
+
             const result = await predictor.generatePrediction(symbol);
-            
+
             const caption = [
               `🔮 *${symbol} 24h PREDICTION*`,
               ``,
