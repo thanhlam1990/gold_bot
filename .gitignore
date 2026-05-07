@@ -1,0 +1,7 @@
+node_modules
+.env
+dist
+data
+agents.md
+skills.md
+docker-compose.yml

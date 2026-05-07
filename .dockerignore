@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+*.log
+.git
+.gitignore
+README.md
+skills.md
+agent.md
