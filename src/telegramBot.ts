@@ -33,8 +33,8 @@ export class TelegramBotService {
 
     // Dynamically build command menu
     const commands = [
-      //{ command: 'get', description: 'Get current prices' },
-      //{ command: 'stats', description: '24h stats' },
+      { command: 'get', description: 'Get current prices' },
+      { command: 'stats', description: '24h stats' },
       { command: 'predict', description: 'Predict next 24h price' }
     ];
     if (this.config.symbols.length > 1) {
