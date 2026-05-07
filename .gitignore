@@ -5,5 +5,3 @@ data
 agents.md
 skills.md
 docker-compose.yml
-Dockerfile
-.dockerignore
