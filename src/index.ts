@@ -5,6 +5,12 @@ import { AlertEngine } from "./alertEngine";
 import { HistoryManager } from "./historyManager";
 import { logger, setLogLevel } from "./logger";
 
+import express from "express";
+const app = express();
+
+app.get("/", (_: any, res: any) => res.send("OK"));
+
+app.listen(process.env.PORT || 3000);
 // ── Bootstrap ─────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -46,10 +52,10 @@ async function main(): Promise<void> {
     for (const symbol of config.symbols) {
       try {
         const assetPrice = await fetcher.fetch(symbol);
-        
+
         // Record history
         history.addPrice(assetPrice);
-        
+
         // Evaluate for alerts
         await engine.evaluate(symbol, assetPrice.price, assetPrice.timestamp);
       } catch (err) {
