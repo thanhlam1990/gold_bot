@@ -61,13 +61,41 @@ export class AssetFetcher {
   async fetchFromGoldApiFallback(symbol: string): Promise<AssetPrice> {
     const maxRetries = 3;
     let lastError: Error | null = null;
+    const httpsAgent = new https.Agent({
+      lookup: (
+        hostname: string,
+        options: dns.LookupOneOptions | dns.LookupAllOptions,
+        callback: any
+      ) => {
+        if (hostname === "api.gold-api.com") {
+          // Node requests all addresses
+          if ((options as dns.LookupAllOptions).all) {
+            callback(null, [
+              {
+                address: "137.184.95.73",
+                family: 4,
+              },
+            ]);
+            return;
+          }
+
+          // Normal lookup
+          callback(null, "137.184.95.73", 4);
+          return;
+        }
+
+        dns.lookup(hostname, options as any, callback);
+      },
+    });
     for (let i = 0; i < maxRetries; i++) {
       try {
         logger.debug(`Fetching ${symbol} from api.gold-api.com fallback (attempt ${i + 1}) …`);
         const { data } = await axios.get<{ price: number; updatedAt: string }>(
           `https://api.gold-api.com/price/${symbol}`,
           {
+            httpsAgent,
             timeout: 10_000,
+            family: 4,
             headers: {
               "User-Agent": "Mozilla/5.0 (compatible; AssetAlertBot/1.0)",
               "Accept": "application/json",

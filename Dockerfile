@@ -46,5 +46,5 @@ HEALTHCHECK --interval=60s --timeout=10s --start-period=15s --retries=3 \
   CMD pgrep -f "node dist/index.js" || exit 1
 
 # Use dumb-init to handle SIGINT/SIGTERM properly
-ENTRYPOINT ["sh", "-c", "echo '137.184.95.73 api.gold-api.com' >> /etc/hosts && exec dumb-init -- node dist/index.js"]
-# CMD ["node", "dist/index.js"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/index.js"]
