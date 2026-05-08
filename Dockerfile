@@ -35,6 +35,11 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy compiled output from builder
 COPY --from=builder /app/dist ./dist
 
+# ============================================================
+# Add custom host mapping (extra_hosts equivalent)
+# ============================================================
+RUN echo "137.184.95.73 api.gold-api.com" >> /etc/hosts
+
 # Create data directory and set permissions
 RUN mkdir -p /app/data && chown -R node:node /app/data
 

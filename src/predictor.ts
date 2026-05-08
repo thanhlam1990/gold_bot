@@ -34,8 +34,8 @@ export class PricePredictor {
     logger.info(`Fetching real Klines from Binance for ${binanceSymbol} (mapped from ${originalSymbol})`);
 
     // Fetch 100 hours of data to calculate MA50 and RSI14
-    const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=1h&limit=100`;
-    
+    const url = `https://api1.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=1h&limit=100`;
+
     let klines: any[] = [];
     try {
       const response = await axios.get(url, { timeout: 10000 });
@@ -51,7 +51,7 @@ export class PricePredictor {
     // kline format: [openTime, open, high, low, close, volume, closeTime, ...]
     const closes: number[] = klines.map(k => parseFloat(k[4]));
     const volumes: number[] = klines.map(k => parseFloat(k[5]));
-    
+
     const currentPrice = closes[closes.length - 1];
 
     // Helper to calculate EMA Array
@@ -60,10 +60,10 @@ export class PricePredictor {
       const k = 2 / (period + 1);
       const emaArray: number[] = [];
       let initialSMA = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
-      
-      for(let i = 0; i < period - 1; i++) emaArray.push(initialSMA);
+
+      for (let i = 0; i < period - 1; i++) emaArray.push(initialSMA);
       emaArray.push(initialSMA);
-      
+
       for (let i = period; i < data.length; i++) {
         emaArray.push(data[i] * k + emaArray[i - 1] * (1 - k));
       }
@@ -112,10 +112,10 @@ export class PricePredictor {
 
     // 5. Calculate ATR (Average True Range) 14
     const trArray = [];
-    for(let i = 1; i < klines.length; i++) {
+    for (let i = 1; i < klines.length; i++) {
       const high = parseFloat(klines[i][2]);
       const low = parseFloat(klines[i][3]);
-      const prevClose = parseFloat(klines[i-1][4]);
+      const prevClose = parseFloat(klines[i - 1][4]);
       const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
       trArray.push(tr);
     }
@@ -132,19 +132,19 @@ export class PricePredictor {
     let score = 0;
     if (ema20 > ema50) score += 1; else score -= 1;
     if (isMacdBullish) score += 1; else score -= 1;
-    
+
     // Volume Confirmation
     if (isVolumeSurge) {
       if (currentPrice > ema20) score += 1; // Bullish surge
       else score -= 1; // Bearish surge
     }
-    
+
     // Advanced RSI logic
     if (rsi < 30) score += 2; // Strong Oversold
     else if (rsi < 40) score += 1; // Oversold
     if (rsi > 70) score -= 2; // Strong Overbought
     else if (rsi > 60) score -= 1; // Overbought
-    
+
     let trend: 'STRONG_UP' | 'UP' | 'NEUTRAL' | 'DOWN' | 'STRONG_DOWN' = 'NEUTRAL';
     if (score >= 3) trend = 'STRONG_UP';
     else if (score >= 1) trend = 'UP';
@@ -176,13 +176,13 @@ export class PricePredictor {
     const last24Volumes = volumes.slice(-24);
     const last24Timestamps = timestamps.slice(-24);
     const currentTs = last24Timestamps[last24Timestamps.length - 1];
-    
+
     for (let i = 0; i < 24; i++) {
       labels.push(formatTime(last24Timestamps[i]));
       historyData.push(Number(last24Closes[i].toFixed(2)));
       predictionData.push(i === 23 ? Number(last24Closes[i].toFixed(2)) : null);
       volumeData.push(Number(last24Volumes[i].toFixed(2)));
-      
+
       // We don't render BB for history to keep chart clean, only for prediction zone
       upperBandData.push(null);
       lowerBandData.push(null);
@@ -204,10 +204,10 @@ export class PricePredictor {
 
     for (let i = 1; i <= 24; i++) {
       labels.push(formatTime(currentTs + i * 3600 * 1000));
-      
+
       // Base drift from Trend
       let drift = score * (volatility / 3);
-      
+
       // Mean Reversion: If price approaches BB edges, push it back
       if (predPrice > currentBbUpper * 0.999) {
         drift -= volatility; // Strong push down
@@ -217,16 +217,16 @@ export class PricePredictor {
 
       const noise = (Math.random() * volatility * 2) - volatility;
       predPrice = predPrice * (1 + drift + noise);
-      
+
       // Expand bands slightly as uncertainty grows
       currentBbUpper *= 1.0001;
       currentBbLower *= 0.9999;
-      
+
       historyData.push(null);
       predictionData.push(Number(predPrice.toFixed(2)));
       upperBandData.push(i === 1 ? null : Number(currentBbUpper.toFixed(2)));
       lowerBandData.push(i === 1 ? null : Number(currentBbLower.toFixed(2)));
-      
+
       // predict volume based on average
       const avgVol = volume24h / 24;
       volumeData.push(Number((avgVol * (0.5 + Math.random())).toFixed(2)));
