@@ -35,11 +35,6 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy compiled output from builder
 COPY --from=builder /app/dist ./dist
 
-# ============================================================
-# Add custom host mapping (extra_hosts equivalent)
-# ============================================================
-RUN echo "137.184.95.73 api.gold-api.com" >> /etc/hosts
-
 # Create data directory and set permissions
 RUN mkdir -p /app/data && chown -R node:node /app/data
 
@@ -51,5 +46,5 @@ HEALTHCHECK --interval=60s --timeout=10s --start-period=15s --retries=3 \
   CMD pgrep -f "node dist/index.js" || exit 1
 
 # Use dumb-init to handle SIGINT/SIGTERM properly
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["sh", "-c", "echo '137.184.95.73 api.gold-api.com' >> /etc/hosts && exec dumb-init -- node dist/index.js"]
+# CMD ["node", "dist/index.js"]
