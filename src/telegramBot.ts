@@ -49,7 +49,7 @@ export class TelegramBotService {
         });
       });
     }
-    commands.push({ command: 'refresh', description: 'refresh bot' })
+    commands.push({ command: 'reload_service', description: 'reload service bot' })
     this.bot.setMyCommands(commands).catch(err =>
       logger.warn(`[Telegram] Failed to set commands: ${err.message}`)
     );
@@ -203,32 +203,19 @@ export class TelegramBotService {
     });
 
     // --- /refresh command ---
-    this.bot.onText(/\/refresh/, async (msg) => {
+    this.bot.onText(/\/reload_service/, async (msg) => {
       const chatId = msg.chat.id;
-      logger.info(`[Telegram] Received /refresh command from ${chatId}`);
-
-      try {
-        await this.bot.sendMessage(chatId, `⏳ Đang gọi refresh...`);
-
-        const response = await fetch(this.config.ip_http);
-        const text = await response.text();
-
-        let display: string;
-        if (response.ok) {
-          display = text;
-        } else {
-          display = 'Error';
+      await this.bot.sendMessage(
+        chatId,
+        `🔗 Bấm vào để đánh thức service:`,
+        {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '🚀', url: this.config.ip_http }
+            ]]
+          }
         }
-        const status = response.ok ? '✅' : '⚠️';
-        await this.bot.sendMessage(
-          chatId,
-          `${status} *Refresh* \`${response.status}\`\n\`\`\`\n${display}\n\`\`\``,
-          { parse_mode: 'Markdown' }
-        );
-      } catch (error) {
-        logger.error(`[Telegram] Failed to handle /refresh: ${(error as Error).message}`);
-        await this.bot.sendMessage(chatId, `❌ Không thể kết nối tới server: \`${(error as Error).message}\``, { parse_mode: 'Markdown' });
-      }
+      );
     });
 
     // Handle errors
