@@ -49,7 +49,7 @@ export class TelegramBotService {
         });
       });
     }
-
+    commands.push({ command: 'refresh', description: 'refresh bot' })
     this.bot.setMyCommands(commands).catch(err =>
       logger.warn(`[Telegram] Failed to set commands: ${err.message}`)
     );
@@ -224,7 +224,7 @@ export class TelegramBotService {
         const status = response.ok ? '✅' : '⚠️';
         await this.bot.sendMessage(
           chatId,
-          `${status} *Refresh* \`HTTP ${response.status}\`\n\`\`\`\n${display}\n\`\`\``,
+          `${status} *Refresh* \`${response.status}\``,
           { parse_mode: 'Markdown' }
         );
       } catch (error) {
