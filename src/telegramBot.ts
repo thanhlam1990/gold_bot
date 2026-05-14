@@ -214,17 +214,15 @@ export class TelegramBotService {
         const text = await response.text();
 
         let display: string;
-        try {
-          const json = JSON.parse(text);
-          display = JSON.stringify(json, null, 2);
-        } catch {
+        if (response.ok) {
           display = text;
+        } else {
+          display = 'Error';
         }
-
         const status = response.ok ? '✅' : '⚠️';
         await this.bot.sendMessage(
           chatId,
-          `${status} *Refresh* \`${response.status}\``,
+          `${status} *Refresh* \`${response.status}\`\n\`\`\`\n${display}\n\`\`\``,
           { parse_mode: 'Markdown' }
         );
       } catch (error) {
