@@ -42,4 +42,5 @@ export interface BotConfig {
   };
   logLevel: "debug" | "info" | "warn" | "error";
   hourlyReport: number;
+  ip_http: string;
 }

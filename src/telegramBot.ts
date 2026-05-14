@@ -202,6 +202,37 @@ export class TelegramBotService {
       }
     });
 
+    // --- /refresh command ---
+    this.bot.onText(/\/refresh/, async (msg) => {
+      const chatId = msg.chat.id;
+      logger.info(`[Telegram] Received /refresh command from ${chatId}`);
+
+      try {
+        await this.bot.sendMessage(chatId, `⏳ Đang gọi refresh...`);
+
+        const response = await fetch(this.config.ip_http);
+        const text = await response.text();
+
+        let display: string;
+        try {
+          const json = JSON.parse(text);
+          display = JSON.stringify(json, null, 2);
+        } catch {
+          display = text;
+        }
+
+        const status = response.ok ? '✅' : '⚠️';
+        await this.bot.sendMessage(
+          chatId,
+          `${status} *Refresh* \`HTTP ${response.status}\`\n\`\`\`\n${display}\n\`\`\``,
+          { parse_mode: 'Markdown' }
+        );
+      } catch (error) {
+        logger.error(`[Telegram] Failed to handle /refresh: ${(error as Error).message}`);
+        await this.bot.sendMessage(chatId, `❌ Không thể kết nối tới server: \`${(error as Error).message}\``, { parse_mode: 'Markdown' });
+      }
+    });
+
     // Handle errors
     this.bot.on('polling_error', (error) => {
       if (error.message.includes('EFATAL')) {

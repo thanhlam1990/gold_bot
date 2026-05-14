@@ -22,7 +22,7 @@ export function loadConfig(): BotConfig {
   const notifyWebhook = optionalEnv("NOTIFY_WEBHOOK", "false") === "true";
   const symbols = optionalEnv("SYMBOLS", "XAU").split(",").map(s => s.trim().toUpperCase());
   const defaultThreshold = parseFloat(optionalEnv("ALERT_THRESHOLD_PERCENT", "1"));
-  
+
   const thresholds: Record<string, number> = {};
   for (const s of symbols) {
     thresholds[s] = parseFloat(optionalEnv(`THRESHOLD_${s}`, defaultThreshold.toString()));
@@ -54,5 +54,6 @@ export function loadConfig(): BotConfig {
 
     logLevel: (optionalEnv("LOG_LEVEL", "info") as BotConfig["logLevel"]),
     hourlyReport: parseInt(optionalEnv("HOURLY_REPORT", "2"), 10),
+    ip_http: requireEnv("IP_HTTP")
   };
 }
