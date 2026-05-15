@@ -35,7 +35,7 @@ export class TelegramBotService {
     const commands = [
       { command: 'get', description: 'Get current prices' },
       { command: 'stats', description: '24h stats' },
-      { command: 'predict', description: 'Predict next 24h price' }
+      { command: 'predict', description: 'Predict next 4days price' }
     ];
     if (this.config.symbols.length > 1) {
       this.config.symbols.map(s => {
@@ -45,7 +45,7 @@ export class TelegramBotService {
         });
         commands.push({
           command: `predict_${s.toLowerCase()}`,
-          description: `Predict next 24h for ${s}`
+          description: `Predict next 4days for ${s}`
         });
       });
     }
