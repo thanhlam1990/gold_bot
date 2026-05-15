@@ -33,8 +33,8 @@ export class PricePredictor {
     const binanceSymbol = this.getBinanceSymbol(originalSymbol);
     logger.info(`Fetching real Klines from Binance for ${binanceSymbol} (mapped from ${originalSymbol})`);
 
-    // Fetch 100 hours of data to calculate MA50 and RSI14
-    const url = `https://api1.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=1h&limit=100`;
+    // Fetch 500 periods of 4h data for deep analysis (approx 83 days)
+    const url = `https://api1.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=4h&limit=500`;
 
     let klines: any[] = [];
     try {
@@ -134,8 +134,8 @@ export class PricePredictor {
     const last14TR = trArray.slice(-14);
     const atr14 = last14TR.reduce((a, b) => a + b, 0) / 14;
 
-    // 6. Calculate Volume 24h & Volume Surge
-    const volume24h = volumes.slice(-24).reduce((a, b) => a + b, 0);
+    // 6. Calculate Volume 24h (6 candles * 4h = 24h) & Volume Surge
+    const volume24h = volumes.slice(-6).reduce((a, b) => a + b, 0);
     const volSMA20 = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
     const currentVol = volumes[volumes.length - 1];
     const isVolumeSurge = currentVol > volSMA20 * 1.5;
@@ -218,27 +218,33 @@ export class PricePredictor {
     let currentBbLower = bbLower;
 
     for (let i = 1; i <= 24; i++) {
-      labels.push(formatTime(currentTs + i * 3600 * 1000));
+      labels.push(formatTime(currentTs + i * 4 * 3600 * 1000));
 
-      // Base drift from Trend (smoothed)
-      let drift = (score / 10) * (volatility / 2);
+      // 1. Base drift from Trend with Decay (Momentum fades over time)
+      const decayFactor = Math.pow(0.96, i); 
+      let drift = (score / 10) * (volatility / 2) * decayFactor;
 
-      // Mean Reversion: If price approaches BB edges, push it back smoothly
+      // 2. EMA Attraction (Price tends to revert to the mean/EMA20)
+      const attractionToEMA = (ema20 - predPrice) / ema20 * 0.02;
+      drift += attractionToEMA;
+
+      // 3. Mean Reversion (Bollinger Band constraints)
       const distToUpper = (currentBbUpper - predPrice) / currentBbUpper;
       const distToLower = (predPrice - currentBbLower) / currentBbLower;
 
       if (distToUpper < 0.01) {
-        drift -= volatility * (1 - distToUpper * 100); 
+        drift -= volatility * (1.2 - distToUpper * 100); 
       } else if (distToLower < 0.01) {
-        drift += volatility * (1 - distToLower * 100);
+        drift += volatility * (1.2 - distToLower * 100);
       }
 
-      const noise = (Math.random() * volatility * 1.5) - (volatility * 0.75);
-      predPrice = predPrice * (1 + drift + noise);
+      // 4. Stochastic Noise (Brownian motion with volatility scaling)
+      const randomShock = (Math.random() * 2 - 1) * volatility * 0.8;
+      predPrice = predPrice * (1 + drift + randomShock);
 
-      // Expand bands slightly as uncertainty grows (logarithmic expansion)
-      currentBbUpper *= (1 + 0.0001 * Math.sqrt(i));
-      currentBbLower *= (1 - 0.0001 * Math.sqrt(i));
+      // Expand bands (uncertainty grows logarithmically)
+      currentBbUpper *= (1 + 0.00015 * Math.sqrt(i));
+      currentBbLower *= (1 - 0.00015 * Math.sqrt(i));
 
       historyData.push(null);
       predictionData.push(Number(predPrice.toFixed(2)));
@@ -308,7 +314,7 @@ export class PricePredictor {
       options: {
         title: {
           display: true,
-          text: `${originalSymbol} - AI Prediction (EMA, MACD, RSI, ATR, BB)`,
+          text: `${originalSymbol} - AI 4H Prediction (EMA, MACD, RSI, ATR, BB)`,
           fontSize: 16
         },
         scales: {
@@ -332,8 +338,8 @@ export class PricePredictor {
       bbUpper: Number(bbUpper.toFixed(2)),
       bbLower: Number(bbLower.toFixed(2)),
       volume24h: Number(volume24h.toFixed(2)),
-      predicted24hHigh: Number(high.toFixed(2)),
-      predicted24hLow: Number(low.toFixed(2)),
+      predicted24hHigh: Number(high.toFixed(2)), // This is now 96h High
+      predicted24hLow: Number(low.toFixed(2)),  // This is now 96h Low
       chartUrl,
       trend
     };

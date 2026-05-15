@@ -175,11 +175,11 @@ export class TelegramBotService {
             const result = await predictor.generatePrediction(symbol);
 
             const caption = [
-              `🔮 *${symbol} 24h PREDICTION*`,
+              `🔮 *${symbol} 96h (4-DAY) PREDICTION*`,
               ``,
               `💵 Current Price: *$${result.currentPrice.toLocaleString('en-US')}*`,
-              `📈 Predicted High: $${result.predicted24hHigh.toLocaleString('en-US')}`,
-              `📉 Predicted Low:  $${result.predicted24hLow.toLocaleString('en-US')}`,
+              `📈 Predicted High (4D): $${result.predicted24hHigh.toLocaleString('en-US')}`,
+              `📉 Predicted Low (4D):  $${result.predicted24hLow.toLocaleString('en-US')}`,
               ``,
               `📊 *Technical Indicators (PRO)*`,
               `• RSI (14): ${result.rsi} ${result.rsi > 70 ? '(Overbought)' : result.rsi < 30 ? '(Oversold)' : '(Neutral)'}`,
