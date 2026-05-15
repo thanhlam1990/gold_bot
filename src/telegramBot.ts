@@ -31,22 +31,6 @@ export class TelegramBotService {
   public listen(): void {
     logger.info('🚀 Telegram command listener active (/get, /stats)');
 
-    // Set menu button via direct HTTP API
-    fetch(`https://api.telegram.org/bot${this.config.notifications.telegramBotToken}/setChatMenuButton`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        menu_button: {
-          type: 'web_app',
-          text: 'Open App',
-          web_app: { url: this.config.ip_http }
-        }
-      })
-    })
-      .then(res => res.json())
-      .then(data => logger.info(`[Telegram] Menu button set: ${JSON.stringify(data)}`))
-      .catch(err => logger.warn(`[Telegram] Failed to set menu button: ${err.message}`));
-
     // Dynamically build command menu
     const commands = [
       { command: 'get', description: 'Get current prices' },

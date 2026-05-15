@@ -84,16 +84,28 @@ export class PricePredictor {
     const macdHistogram = macdLineArr[macdLineArr.length - 1] - signalLineArr[signalLineArr.length - 1];
     const isMacdBullish = macdHistogram > 0;
 
-    // 3. Calculate RSI 14
+    // 3. Calculate RSI 14 (Wilder's Smoothing)
     let gains = 0;
     let losses = 0;
-    for (let i = closes.length - 14; i < closes.length; i++) {
-      const diff = closes[i] - closes[i - 1];
+    
+    // Initial RSI (first 14)
+    for (let i = 1; i <= 14; i++) {
+      const diff = closes[closes.length - 28 + i] - closes[closes.length - 29 + i];
       if (diff >= 0) gains += diff;
       else losses -= diff;
     }
-    const avgGain = gains / 14;
-    const avgLoss = losses / 14;
+    let avgGain = gains / 14;
+    let avgLoss = losses / 14;
+
+    // Smoothed RSI (remaining 14)
+    for (let i = closes.length - 13; i < closes.length; i++) {
+      const diff = closes[i] - closes[i - 1];
+      const currentGain = diff >= 0 ? diff : 0;
+      const currentLoss = diff < 0 ? -diff : 0;
+      avgGain = (avgGain * 13 + currentGain) / 14;
+      avgLoss = (avgLoss * 13 + currentLoss) / 14;
+    }
+    
     let rsi = 50;
     if (avgLoss !== 0) {
       const rs = avgGain / avgLoss;
@@ -126,30 +138,33 @@ export class PricePredictor {
     const volume24h = volumes.slice(-24).reduce((a, b) => a + b, 0);
     const volSMA20 = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
     const currentVol = volumes[volumes.length - 1];
-    const isVolumeSurge = currentVol > volSMA20 * 1.5; // 50% above average
+    const isVolumeSurge = currentVol > volSMA20 * 1.5;
 
-    // 7. Advanced Trend Scoring (-5 to +5)
+    // 7. Advanced Trend Scoring (-10 to +10) - WEIGHTED
     let score = 0;
-    if (ema20 > ema50) score += 1; else score -= 1;
-    if (isMacdBullish) score += 1; else score -= 1;
+    // EMA Weight: 3
+    if (ema20 > ema50) score += 3; else score -= 3;
+    
+    // MACD Weight: 2
+    if (isMacdBullish) score += 2; else score -= 2;
 
-    // Volume Confirmation
+    // Volume Confirmation Weight: 2
     if (isVolumeSurge) {
-      if (currentPrice > ema20) score += 1; // Bullish surge
-      else score -= 1; // Bearish surge
+      if (currentPrice > ema20) score += 2; 
+      else score -= 2;
     }
 
-    // Advanced RSI logic
-    if (rsi < 30) score += 2; // Strong Oversold
-    else if (rsi < 40) score += 1; // Oversold
-    if (rsi > 70) score -= 2; // Strong Overbought
-    else if (rsi > 60) score -= 1; // Overbought
+    // RSI contrarian/trend Weight: 3
+    if (rsi < 30) score += 3; // Extreme Oversold
+    else if (rsi < 40) score += 1; 
+    if (rsi > 70) score -= 3; // Extreme Overbought
+    else if (rsi > 60) score -= 1;
 
     let trend: 'STRONG_UP' | 'UP' | 'NEUTRAL' | 'DOWN' | 'STRONG_DOWN' = 'NEUTRAL';
-    if (score >= 3) trend = 'STRONG_UP';
-    else if (score >= 1) trend = 'UP';
-    else if (score <= -3) trend = 'STRONG_DOWN';
-    else if (score <= -1) trend = 'DOWN';
+    if (score >= 6) trend = 'STRONG_UP';
+    else if (score >= 2) trend = 'UP';
+    else if (score <= -6) trend = 'STRONG_DOWN';
+    else if (score <= -2) trend = 'DOWN';
 
     // 8. Build Chart Data
     const labels: string[] = [];
@@ -205,22 +220,25 @@ export class PricePredictor {
     for (let i = 1; i <= 24; i++) {
       labels.push(formatTime(currentTs + i * 3600 * 1000));
 
-      // Base drift from Trend
-      let drift = score * (volatility / 3);
+      // Base drift from Trend (smoothed)
+      let drift = (score / 10) * (volatility / 2);
 
-      // Mean Reversion: If price approaches BB edges, push it back
-      if (predPrice > currentBbUpper * 0.999) {
-        drift -= volatility; // Strong push down
-      } else if (predPrice < currentBbLower * 1.001) {
-        drift += volatility; // Strong push up
+      // Mean Reversion: If price approaches BB edges, push it back smoothly
+      const distToUpper = (currentBbUpper - predPrice) / currentBbUpper;
+      const distToLower = (predPrice - currentBbLower) / currentBbLower;
+
+      if (distToUpper < 0.01) {
+        drift -= volatility * (1 - distToUpper * 100); 
+      } else if (distToLower < 0.01) {
+        drift += volatility * (1 - distToLower * 100);
       }
 
-      const noise = (Math.random() * volatility * 2) - volatility;
+      const noise = (Math.random() * volatility * 1.5) - (volatility * 0.75);
       predPrice = predPrice * (1 + drift + noise);
 
-      // Expand bands slightly as uncertainty grows
-      currentBbUpper *= 1.0001;
-      currentBbLower *= 0.9999;
+      // Expand bands slightly as uncertainty grows (logarithmic expansion)
+      currentBbUpper *= (1 + 0.0001 * Math.sqrt(i));
+      currentBbLower *= (1 - 0.0001 * Math.sqrt(i));
 
       historyData.push(null);
       predictionData.push(Number(predPrice.toFixed(2)));
