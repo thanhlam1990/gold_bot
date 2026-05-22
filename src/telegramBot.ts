@@ -84,6 +84,11 @@ export class TelegramBotService {
       
       this.userManager.addVip(targetChatId, days);
       await this.bot.sendMessage(chatId, `✅ Đã cấp quyền VIP cho ${targetChatId} thêm ${days} ngày.`);
+      try {
+        await this.bot.sendMessage(targetChatId, `🎉 Chúc mừng! Bạn đã được cấp quyền VIP nhận push cảnh báo tự động trong ${days} ngày.`);
+      } catch (err) {
+        logger.warn(`Could not notify user ${targetChatId}: ${(err as Error).message}`);
+      }
     });
 
     // --- /removevip <chatId> ---
@@ -94,6 +99,11 @@ export class TelegramBotService {
       const targetChatId = match![1];
       this.userManager.removeVip(targetChatId);
       await this.bot.sendMessage(chatId, `❌ Đã hủy quyền VIP của ${targetChatId}.`);
+      try {
+        await this.bot.sendMessage(targetChatId, `🚫 Quyền VIP nhận cảnh báo của bạn đã bị hủy.`);
+      } catch (err) {
+        logger.warn(`Could not notify user ${targetChatId}: ${(err as Error).message}`);
+      }
     });
 
     // --- /listvip ---
@@ -139,7 +149,7 @@ export class TelegramBotService {
                 currentPrice: assetPrice.price,
                 currentTimestamp: assetPrice.timestamp,
                 exchangeRateVND: exchangeRateVND,
-                amountVND: exchangeRateVND !== null ? Math.round(assetPrice.price * exchangeRateVND) : null,
+                amountVND: exchangeRateVND !== null ? Math.round(assetPrice.price * (symbol.toUpperCase().includes('XAU') ? 1.205653 : 1) * exchangeRateVND) : null,
               };
 
               const text = buildAlertMessage(payload);

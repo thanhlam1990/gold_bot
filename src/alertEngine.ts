@@ -157,7 +157,7 @@ export class AlertEngine {
       currentPrice: currentPrice,
       currentTimestamp: currentTimestamp,
       exchangeRateVND: exchangeRateVND,
-      amountVND: exchangeRateVND !== null ? Math.round(currentPrice * exchangeRateVND) : null,
+      amountVND: exchangeRateVND !== null ? Math.round(currentPrice * (symbol.toUpperCase().includes('XAU') ? 1.205653 : 1) * exchangeRateVND) : null,
       isHourlyReport: isHourlyReport && absChange < threshold,
     };
 
