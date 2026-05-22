@@ -47,6 +47,7 @@ export function loadConfig(): BotConfig {
       telegramChatId: notifyTelegram
         ? requireEnv("TELEGRAM_CHAT_ID")
         : undefined,
+      telegramAdminUsername: process.env["TELEGRAM_ADMIN_USERNAME"] || undefined,
 
       webhook: notifyWebhook,
       webhookUrl: notifyWebhook ? requireEnv("WEBHOOK_URL") : undefined,

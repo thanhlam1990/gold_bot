@@ -60,12 +60,32 @@ export class TelegramBotService {
     // --- /start command ---
     this.bot.onText(/\/start/, async (msg) => {
       const chatId = msg.chat.id;
+      const adminUsername = this.config.notifications.telegramAdminUsername;
+
       const text = [
-        `👋 Chào mừng đến với Bot Cảnh Báo Giá!`,
-        `Chat ID của bạn là: \`${chatId}\``,
-        `Hãy gửi ID này cho Admin để đăng ký VIP nhận push cảnh báo tự động nhé.`
+        `👋 Chào mừng đến với *Bot Cảnh Báo Giá Vàng & Crypto!*`,
+        ``,
+        `🆔 Chat ID của bạn là: \`${chatId}\``,
+        ``,
+        `📌 Để nhận *push cảnh báo tự động* khi giá biến động, bạn cần đăng ký gói VIP.`,
+        `Nhấn nút bên dưới để gửi ID của bạn cho Admin nhé! 👇`,
       ].join('\n');
-      await this.bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
+
+      const options: any = { parse_mode: 'Markdown' };
+
+      if (adminUsername) {
+        const prefilledMsg = encodeURIComponent(`Đăng ký VIP - Chat ID: ${chatId}`);
+        options.reply_markup = {
+          inline_keyboard: [[
+            {
+              text: '📩 Liên hệ Admin đăng ký VIP',
+              url: `https://t.me/${adminUsername}?text=${prefilledMsg}`
+            }
+          ]]
+        };
+      }
+
+      await this.bot.sendMessage(chatId, text, options);
     });
 
     const isAdmin = (chatId: number) => {

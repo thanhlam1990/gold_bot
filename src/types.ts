@@ -36,6 +36,7 @@ export interface BotConfig {
     telegram: boolean;
     telegramBotToken?: string;
     telegramChatId?: string;
+    telegramAdminUsername?: string;
     webhook: boolean;
     webhookUrl?: string;
   };
