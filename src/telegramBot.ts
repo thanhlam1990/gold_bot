@@ -2,7 +2,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { AssetFetcher } from './goldFetcher';
 import { BotConfig, AlertPayload } from './types';
 import { logger } from './logger';
-import { AlertEngine, buildAlertMessage } from './alertEngine';
+import { AlertEngine, buildAlertMessage, getExchangeRateVND } from './alertEngine';
 import { HistoryManager } from './historyManager';
 import { PricePredictor } from './predictor';
 
@@ -71,14 +71,14 @@ export class TelegramBotService {
 
             if (currentSnapshot) {
               const changePercent = ((assetPrice.price - currentSnapshot.price) / currentSnapshot.price) * 100;
+              const exchangeRateVND = await getExchangeRateVND();
               const payload: AlertPayload = {
                 symbol,
                 direction: changePercent >= 0 ? "UP" : "DOWN",
-                changePercent: changePercent,
-                previousPrice: currentSnapshot.price,
                 currentPrice: assetPrice.price,
-                previousTimestamp: currentSnapshot.timestamp,
                 currentTimestamp: assetPrice.timestamp,
+                exchangeRateVND: exchangeRateVND,
+                amountVND: exchangeRateVND !== null ? assetPrice.price * exchangeRateVND : null,
               };
 
               const text = buildAlertMessage(payload);

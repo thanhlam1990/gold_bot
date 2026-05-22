@@ -19,11 +19,10 @@ export interface PriceSnapshot {
 export interface AlertPayload {
   symbol: string;
   direction: "UP" | "DOWN";
-  changePercent: number;
-  previousPrice: number;
   currentPrice: number;
-  previousTimestamp: Date;
   currentTimestamp: Date;
+  exchangeRateVND: number | null;
+  amountVND: number | null;
   isHourlyReport?: boolean;
 }
 

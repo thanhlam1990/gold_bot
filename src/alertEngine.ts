@@ -17,22 +17,30 @@ export function formatUSD(amount: number): string {
   }).format(amount);
 }
 
+export async function getExchangeRateVND(): Promise<number | null> {
+  try {
+    const { data } = await axios.get("https://api.exchangerate-api.com/v4/latest/USD");
+    return data?.rates?.VND || null;
+  } catch (err) {
+    logger.warn(`Failed to fetch VND exchange rate: ${(err as Error).message}`);
+    return null;
+  }
+}
+
 export function buildAlertMessage(payload: AlertPayload): string {
   const arrow = payload.direction === "UP" ? "📈" : "📉";
-  const sign = payload.direction === "UP" ? "+" : "-";
 
   const title = payload.isHourlyReport
-    ? `⏱ ${payload.symbol} REPORT: ${sign}${Math.abs(payload.changePercent).toFixed(2)}%`
-    : `${arrow} ${payload.symbol} PRICE ${payload.direction}  ${sign}${Math.abs(payload.changePercent).toFixed(2)}%`;
+    ? `⏱ ${payload.symbol} REPORT`
+    : `${arrow} ${payload.symbol} PRICE ${payload.direction}`;
 
   return [
     title,
     ``,
     `  Current  : ${payload.currentPrice.toLocaleString('en-US')} / USD`,
-    `  Previous : ${payload.previousPrice.toLocaleString('en-US')} / USD`,
-    `  Change   : ${sign}${Math.abs(payload.currentPrice - payload.previousPrice).toLocaleString('en-US')}`,
+    `  Rate     : ${payload.exchangeRateVND !== null ? payload.exchangeRateVND.toLocaleString('vi-VN') + ' VND / USD' : '--'}`,
+    `  Amount   : ${payload.amountVND !== null ? payload.amountVND.toLocaleString('vi-VN') + ' VND' : '--'}`,
     ``,
-    `  Prev time : ${payload.previousTimestamp.toLocaleString("vi-VN")}`,
     `  Now       : ${payload.currentTimestamp.toLocaleString("vi-VN")}`,
   ].join("\n");
 }
@@ -68,10 +76,9 @@ async function notifyWebhook(
     event: "asset_price_alert",
     symbol: payload.symbol,
     direction: payload.direction,
-    changePercent: payload.changePercent,
-    previousPrice: payload.previousPrice,
     currentPrice: payload.currentPrice,
-    previousTimestamp: payload.previousTimestamp.toISOString(),
+    exchangeRateVND: payload.exchangeRateVND,
+    amountVND: payload.amountVND,
     currentTimestamp: payload.currentTimestamp.toISOString(),
     message: buildAlertMessage(payload),
   });
@@ -139,14 +146,15 @@ export class AlertEngine {
       logger.info(`📌 New baseline set for ${symbol}: ${currentPrice.toLocaleString('en-US')}`);
     }
 
+    const exchangeRateVND = await getExchangeRateVND();
+
     const payload: AlertPayload = {
       symbol,
       direction: changePercent >= 0 ? "UP" : "DOWN",
-      changePercent: changePercent,
-      previousPrice: prevPrice,
       currentPrice: currentPrice,
-      previousTimestamp: prevTimestamp,
       currentTimestamp: currentTimestamp,
+      exchangeRateVND: exchangeRateVND,
+      amountVND: exchangeRateVND !== null ? currentPrice * exchangeRateVND : null,
       isHourlyReport: isHourlyReport && absChange < threshold,
     };
 
