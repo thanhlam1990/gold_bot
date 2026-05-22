@@ -63,26 +63,25 @@ export class TelegramBotService {
       const text = [
         `👋 Chào mừng đến với Bot Cảnh Báo Giá!`,
         `Chat ID của bạn là: \`${chatId}\``,
-        `Hãy gửi ID này cho Admin để đăng ký VIP nhận push cảnh báo tự động nhé.`,
-        `Các lệnh miễn phí: /get, /stats, /predict`
+        `Hãy gửi ID này cho Admin để đăng ký VIP nhận push cảnh báo tự động nhé.`
       ].join('\n');
       await this.bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
     });
 
     const isAdmin = (chatId: number) => {
-      return this.config.notifications.telegramChatId && 
-             chatId.toString() === this.config.notifications.telegramChatId;
+      return this.config.notifications.telegramChatId &&
+        chatId.toString() === this.config.notifications.telegramChatId;
     };
 
     // --- /addvip <chatId> <days> ---
     this.bot.onText(/\/addvip\s+(\-?\d+)\s+(\d+)/, async (msg, match) => {
       const chatId = msg.chat.id;
       if (!isAdmin(chatId)) return;
-      
+
       const targetChatId = match![1];
       const days = parseInt(match![2], 10);
-      
-      this.userManager.addVip(targetChatId, days);
+
+      await this.userManager.addVip(targetChatId, days);
       await this.bot.sendMessage(chatId, `✅ Đã cấp quyền VIP cho ${targetChatId} thêm ${days} ngày.`);
       try {
         await this.bot.sendMessage(targetChatId, `🎉 Chúc mừng! Bạn đã được cấp quyền VIP nhận push cảnh báo tự động trong ${days} ngày.`);
@@ -95,9 +94,9 @@ export class TelegramBotService {
     this.bot.onText(/\/removevip\s+(\-?\d+)/, async (msg, match) => {
       const chatId = msg.chat.id;
       if (!isAdmin(chatId)) return;
-      
+
       const targetChatId = match![1];
-      this.userManager.removeVip(targetChatId);
+      await this.userManager.removeVip(targetChatId);
       await this.bot.sendMessage(chatId, `❌ Đã hủy quyền VIP của ${targetChatId}.`);
       try {
         await this.bot.sendMessage(targetChatId, `🚫 Quyền VIP nhận cảnh báo của bạn đã bị hủy.`);
@@ -110,13 +109,13 @@ export class TelegramBotService {
     this.bot.onText(/\/listvip/, async (msg) => {
       const chatId = msg.chat.id;
       if (!isAdmin(chatId)) return;
-      
-      const vips = this.userManager.getActiveVips();
+
+      const vips = await this.userManager.getActiveVips();
       if (vips.length === 0) {
         await this.bot.sendMessage(chatId, `Danh sách VIP đang trống.`);
         return;
       }
-      
+
       const lines = vips.map(v => {
         const d = new Date(v.expireAt).toLocaleDateString('vi-VN');
         return `- ${v.chatId}: hết hạn ${d}`;

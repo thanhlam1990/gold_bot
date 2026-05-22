@@ -178,7 +178,7 @@ export class AlertEngine {
     ) {
       tasks.push(
         (async () => {
-          const vips = this.userManager.getActiveVips();
+          const vips = await this.userManager.getActiveVips();
           const targetChats = new Set<string>();
           // Include the admin channel/chat if set
           if (notifications.telegramChatId) {
