@@ -5,6 +5,7 @@
 import axios from "axios";
 import { AlertPayload, BotConfig, PriceSnapshot } from "./types";
 import { logger } from "./logger";
+import { UserManager } from "./userManager";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ export function formatUSD(amount: number): string {
 export async function getExchangeRateVND(): Promise<number | null> {
   try {
     const { data } = await axios.get("https://api.exchangerate-api.com/v4/latest/USD");
-    return data?.rates?.VND || null;
+    return data?.rates?.VND ? Math.round(data.rates.VND) : null;
   } catch (err) {
     logger.warn(`Failed to fetch VND exchange rate: ${(err as Error).message}`);
     return null;
@@ -91,9 +92,11 @@ async function notifyWebhook(
 export class AlertEngine {
   private snapshots: Map<string, PriceSnapshot> = new Map();
   private readonly config: BotConfig;
+  private readonly userManager: UserManager;
 
-  constructor(config: BotConfig) {
+  constructor(config: BotConfig, userManager: UserManager) {
     this.config = config;
+    this.userManager = userManager;
   }
 
   /**
@@ -154,7 +157,7 @@ export class AlertEngine {
       currentPrice: currentPrice,
       currentTimestamp: currentTimestamp,
       exchangeRateVND: exchangeRateVND,
-      amountVND: exchangeRateVND !== null ? currentPrice * exchangeRateVND : null,
+      amountVND: exchangeRateVND !== null ? Math.round(currentPrice * exchangeRateVND) : null,
       isHourlyReport: isHourlyReport && absChange < threshold,
     };
 
@@ -171,15 +174,30 @@ export class AlertEngine {
 
     if (
       notifications.telegram &&
-      notifications.telegramBotToken &&
-      notifications.telegramChatId
+      notifications.telegramBotToken
     ) {
       tasks.push(
-        notifyTelegram(
-          payload,
-          notifications.telegramBotToken,
-          notifications.telegramChatId
-        ).catch((err) => logger.error(`Telegram error for ${payload.symbol}: ${(err as Error).message}`))
+        (async () => {
+          const vips = this.userManager.getActiveVips();
+          const targetChats = new Set<string>();
+          // Include the admin channel/chat if set
+          if (notifications.telegramChatId) {
+            targetChats.add(notifications.telegramChatId);
+          }
+          for (const vip of vips) {
+            targetChats.add(vip.chatId);
+          }
+
+          for (const chatId of targetChats) {
+            try {
+              await notifyTelegram(payload, notifications.telegramBotToken!, chatId);
+              // Small delay to avoid rate limit (30 msgs/sec limit on Telegram)
+              await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (err) {
+              logger.error(`Telegram error for ${payload.symbol} to ${chatId}: ${(err as Error).message}`);
+            }
+          }
+        })()
       );
     }
 

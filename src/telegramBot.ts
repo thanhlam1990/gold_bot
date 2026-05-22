@@ -5,6 +5,7 @@ import { logger } from './logger';
 import { AlertEngine, buildAlertMessage, getExchangeRateVND } from './alertEngine';
 import { HistoryManager } from './historyManager';
 import { PricePredictor } from './predictor';
+import { UserManager } from './userManager';
 
 export class TelegramBotService {
   private bot: TelegramBot;
@@ -13,7 +14,9 @@ export class TelegramBotService {
   private readonly history: HistoryManager;
   private readonly config: BotConfig;
 
-  constructor(config: BotConfig, fetcher: AssetFetcher, engine: AlertEngine, history: HistoryManager) {
+  private readonly userManager: UserManager;
+
+  constructor(config: BotConfig, fetcher: AssetFetcher, engine: AlertEngine, history: HistoryManager, userManager: UserManager) {
     if (!config.notifications.telegramBotToken) {
       throw new Error('Telegram Bot Token is required for TelegramBotService');
     }
@@ -23,6 +26,7 @@ export class TelegramBotService {
     this.engine = engine;
     this.history = history;
     this.config = config;
+    this.userManager = userManager;
   }
 
   /**
@@ -53,6 +57,63 @@ export class TelegramBotService {
       logger.warn(`[Telegram] Failed to set commands: ${err.message}`)
     );
 
+    // --- /start command ---
+    this.bot.onText(/\/start/, async (msg) => {
+      const chatId = msg.chat.id;
+      const text = [
+        `👋 Chào mừng đến với Bot Cảnh Báo Giá!`,
+        `Chat ID của bạn là: \`${chatId}\``,
+        `Hãy gửi ID này cho Admin để đăng ký VIP nhận push cảnh báo tự động nhé.`,
+        `Các lệnh miễn phí: /get, /stats, /predict`
+      ].join('\n');
+      await this.bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
+    });
+
+    const isAdmin = (chatId: number) => {
+      return this.config.notifications.telegramChatId && 
+             chatId.toString() === this.config.notifications.telegramChatId;
+    };
+
+    // --- /addvip <chatId> <days> ---
+    this.bot.onText(/\/addvip\s+(\-?\d+)\s+(\d+)/, async (msg, match) => {
+      const chatId = msg.chat.id;
+      if (!isAdmin(chatId)) return;
+      
+      const targetChatId = match![1];
+      const days = parseInt(match![2], 10);
+      
+      this.userManager.addVip(targetChatId, days);
+      await this.bot.sendMessage(chatId, `✅ Đã cấp quyền VIP cho ${targetChatId} thêm ${days} ngày.`);
+    });
+
+    // --- /removevip <chatId> ---
+    this.bot.onText(/\/removevip\s+(\-?\d+)/, async (msg, match) => {
+      const chatId = msg.chat.id;
+      if (!isAdmin(chatId)) return;
+      
+      const targetChatId = match![1];
+      this.userManager.removeVip(targetChatId);
+      await this.bot.sendMessage(chatId, `❌ Đã hủy quyền VIP của ${targetChatId}.`);
+    });
+
+    // --- /listvip ---
+    this.bot.onText(/\/listvip/, async (msg) => {
+      const chatId = msg.chat.id;
+      if (!isAdmin(chatId)) return;
+      
+      const vips = this.userManager.getActiveVips();
+      if (vips.length === 0) {
+        await this.bot.sendMessage(chatId, `Danh sách VIP đang trống.`);
+        return;
+      }
+      
+      const lines = vips.map(v => {
+        const d = new Date(v.expireAt).toLocaleDateString('vi-VN');
+        return `- ${v.chatId}: hết hạn ${d}`;
+      });
+      await this.bot.sendMessage(chatId, `📋 Danh sách VIP active:\n${lines.join('\n')}`);
+    });
+
     // --- /get command (Detailed status per asset) ---
     this.bot.onText(/\/get(?:\s+(.+))?/, async (msg, match) => {
       const chatId = msg.chat.id;
@@ -78,7 +139,7 @@ export class TelegramBotService {
                 currentPrice: assetPrice.price,
                 currentTimestamp: assetPrice.timestamp,
                 exchangeRateVND: exchangeRateVND,
-                amountVND: exchangeRateVND !== null ? assetPrice.price * exchangeRateVND : null,
+                amountVND: exchangeRateVND !== null ? Math.round(assetPrice.price * exchangeRateVND) : null,
               };
 
               const text = buildAlertMessage(payload);

@@ -3,6 +3,7 @@ import { loadConfig } from "./config";
 import { AssetFetcher } from "./goldFetcher";
 import { AlertEngine } from "./alertEngine";
 import { HistoryManager } from "./historyManager";
+import { UserManager } from "./userManager";
 import { logger, setLogLevel } from "./logger";
 
 import express from "express";
@@ -37,13 +38,14 @@ async function main(): Promise<void> {
 
   // 2. Instantiate services
   const fetcher = new AssetFetcher(config.apiKey);
-  const engine = new AlertEngine(config);
+  const userManager = new UserManager();
+  const engine = new AlertEngine(config, userManager);
   const history = new HistoryManager();
 
   // 2.1 Start Telegram listener if enabled
   if (config.notifications.telegram && config.notifications.telegramBotToken) {
     const { TelegramBotService } = await import("./telegramBot");
-    const tgBot = new TelegramBotService(config, fetcher, engine, history);
+    const tgBot = new TelegramBotService(config, fetcher, engine, history, userManager);
     tgBot.listen();
   }
 
