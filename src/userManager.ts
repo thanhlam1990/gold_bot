@@ -13,8 +13,8 @@ export class UserManager {
   private isConnected: boolean = false;
 
   constructor() {
-    const connectionString = process.env.DATABASE_URL || 'postgresql://thanhlam:3IVjUHha3dLthW7LZZUE1cjeb8GcDM3v@dpg-d87sphu7r5hc73f1va10-a.singapore-postgres.render.com/goldbot_db';
-    
+    const connectionString = process.env.DATABASE_URL || '';
+
     this.pool = new Pool({
       connectionString,
       ssl: {
