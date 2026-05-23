@@ -428,24 +428,38 @@ export class PricePredictor {
       paths.push(path);
     }
 
-    // Compute expected (average) path
-    const avgPath: number[] = [];
+    // Compute MEDIAN path per step (preserves natural zig-zag, avoids flat average)
+    const medianPath: number[] = [];
+    const upperPath: number[] = [];
+    const lowerPath: number[] = [];
     for (let step = 0; step <= steps; step++) {
-      let sum = 0;
-      for (let sim = 0; sim < numSimulations; sim++) {
-        sum += paths[sim][step];
-      }
-      avgPath.push(sum / numSimulations);
+      const stepPricesSorted = paths.map(path => path[step]).sort((a, b) => a - b);
+      medianPath.push(stepPricesSorted[Math.floor(numSimulations * 0.50)]);
+      upperPath.push(stepPricesSorted[Math.floor(numSimulations * 0.85)]);
+      lowerPath.push(stepPricesSorted[Math.floor(numSimulations * 0.15)]);
     }
 
-    // Find 90th and 10th percentile high/low over simulation period
+    // Pick the single simulation path whose FINAL value is closest to the median
+    // This gives a realistic zig-zag representative path
+    const medianFinal = medianPath[medianPath.length - 1];
+    let representativePath = paths[0];
+    let minDist = Math.abs(paths[0][steps] - medianFinal);
+    for (let sim = 1; sim < numSimulations; sim++) {
+      const dist = Math.abs(paths[sim][steps] - medianFinal);
+      if (dist < minDist) {
+        minDist = dist;
+        representativePath = paths[sim];
+      }
+    }
+
+    // Find 85th and 15th percentile high/low over simulation period
     const maxPrices = paths.map(path => Math.max(...path.slice(1)));
     const minPrices = paths.map(path => Math.min(...path.slice(1)));
     maxPrices.sort((a, b) => a - b);
     minPrices.sort((a, b) => a - b);
 
-    const high = maxPrices[Math.floor(numSimulations * 0.90)];
-    const low = minPrices[Math.floor(numSimulations * 0.10)];
+    const high = maxPrices[Math.floor(numSimulations * 0.85)];
+    const low = minPrices[Math.floor(numSimulations * 0.15)];
 
     // 15. Build Chart Data
     const labels: string[] = [];
@@ -483,19 +497,16 @@ export class PricePredictor {
       lowerBandData.push(null);
     }
 
-    // Prediction (T+1 to T+24)
+    // Prediction (T+1 to T+24) — uses representative path for realistic zig-zag
     for (let i = 1; i <= 24; i++) {
       labels.push(formatTime(currentTs + i * 4 * 3600 * 1000));
 
       historyData.push(null);
-      predictionData.push(Number(avgPath[i].toFixed(2)));
+      predictionData.push(Number(representativePath[i].toFixed(2)));
 
-      const stepPrices = paths.map(path => path[i]).sort((a, b) => a - b);
-      const stepUpper = stepPrices[Math.floor(numSimulations * 0.90)];
-      const stepLower = stepPrices[Math.floor(numSimulations * 0.10)];
-
-      upperBandData.push(i === 1 ? null : Number(stepUpper.toFixed(2)));
-      lowerBandData.push(i === 1 ? null : Number(stepLower.toFixed(2)));
+      // Use pre-computed per-step percentile bands
+      upperBandData.push(i === 1 ? null : Number(upperPath[i].toFixed(2)));
+      lowerBandData.push(i === 1 ? null : Number(lowerPath[i].toFixed(2)));
 
       // predict volume based on average
       const avgVol = volume24h / 24;
@@ -512,37 +523,48 @@ export class PricePredictor {
             label: 'Historical',
             data: historyData,
             borderColor: '#2ecc71',
-            borderWidth: 2,
+            backgroundColor: 'rgba(46, 204, 113, 0.08)',
+            borderWidth: 2.5,
+            pointRadius: 0,
             fill: false,
+            tension: 0.3,
             yAxisID: 'y',
           },
           {
-            label: 'Predicted',
+            label: 'Forecast (Representative)',
             data: predictionData,
             borderColor: '#e74c3c',
-            borderDash: [5, 5],
+            backgroundColor: 'rgba(231, 76, 60, 0.08)',
+            borderDash: [6, 3],
             borderWidth: 2,
+            pointRadius: 2,
+            pointBackgroundColor: '#e74c3c',
             fill: false,
+            tension: 0.3,
             yAxisID: 'y',
           },
           {
-            label: 'Conf Upper (90%)',
+            label: 'Upper Band (85%)',
             data: upperBandData,
-            borderColor: 'rgba(149, 165, 166, 0.5)',
-            borderDash: [2, 2],
-            borderWidth: 1,
-            fill: false,
+            borderColor: 'rgba(241, 196, 15, 0.7)',
+            backgroundColor: 'rgba(241, 196, 15, 0.12)',
+            borderDash: [3, 3],
+            borderWidth: 1.5,
             pointRadius: 0,
+            fill: '+1',
+            tension: 0.3,
             yAxisID: 'y',
           },
           {
-            label: 'Conf Lower (10%)',
+            label: 'Lower Band (15%)',
             data: lowerBandData,
-            borderColor: 'rgba(149, 165, 166, 0.5)',
-            borderDash: [2, 2],
-            borderWidth: 1,
+            borderColor: 'rgba(241, 196, 15, 0.7)',
+            backgroundColor: 'rgba(241, 196, 15, 0.05)',
+            borderDash: [3, 3],
+            borderWidth: 1.5,
             fill: false,
             pointRadius: 0,
+            tension: 0.3,
             yAxisID: 'y',
           },
           {
