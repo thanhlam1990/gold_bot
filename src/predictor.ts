@@ -7,6 +7,7 @@ export interface PredictionResult {
   rsi: number;
   ema20: number;
   ema50: number;
+  ema200?: number;
   macd: string; // e.g. "BULLISH" or "BEARISH"
   bbUpper: number;
   bbLower: number;
@@ -47,8 +48,8 @@ export class PricePredictor {
       throw new Error(`Failed to fetch real data for ${originalSymbol} (mapped as ${binanceSymbol}). Error: ${(err as Error).message}`);
     }
 
-    if (!klines || klines.length < 50) {
-      throw new Error(`Not enough historical data from Binance to calculate MA/RSI for ${originalSymbol}`);
+    if (!klines || klines.length < 200) {
+      throw new Error(`Not enough historical data from Binance to calculate indicators for ${originalSymbol}`);
     }
 
     // kline format: [openTime, open, high, low, close, volume, closeTime, ...]
@@ -56,6 +57,7 @@ export class PricePredictor {
     const volumes: number[] = klines.map(k => parseFloat(k[5]));
 
     const currentPrice = closes[closes.length - 1];
+    const lastReturn = (closes[closes.length - 1] - closes[closes.length - 2]) / closes[closes.length - 2];
 
     // Helper to calculate EMA Array
     const calcEMAArray = (data: number[], period: number) => {
@@ -73,11 +75,14 @@ export class PricePredictor {
       return emaArray;
     };
 
-    // 1. Calculate EMAs
+    // 1. Calculate EMAs (EMA20, EMA50, and Long-term structural EMA200)
     const ema20Arr = calcEMAArray(closes, 20);
     const ema50Arr = calcEMAArray(closes, 50);
+    const ema200Arr = calcEMAArray(closes, 200);
+    
     const ema20 = ema20Arr[ema20Arr.length - 1];
     const ema50 = ema50Arr[ema50Arr.length - 1];
+    const ema200 = ema200Arr[ema200Arr.length - 1];
 
     // Calculate EMA20 Slope over the last 5 candles
     const ema20Slope = (ema20Arr[ema20Arr.length - 1] - ema20Arr[ema20Arr.length - 6]) / ema20Arr[ema20Arr.length - 6] * 100;
@@ -129,7 +134,7 @@ export class PricePredictor {
     const bbLower = sma20 - (stdDev * 2);
 
     // 5. Calculate ATR (Average True Range) 14
-    const trArray = [];
+    const trArray: number[] = [];
     for (let i = 1; i < klines.length; i++) {
       const high = parseFloat(klines[i][2]);
       const low = parseFloat(klines[i][3]);
@@ -217,7 +222,23 @@ export class PricePredictor {
       adx = smoothedADX;
     }
 
-    // 8. Advanced Trend Scoring (-12 to +12) - WEIGHTED
+    // 8. Calculate Autoregressive Return Coefficient AR(1) of last 30 candles
+    const returns: number[] = [];
+    for (let i = closes.length - 30; i < closes.length; i++) {
+      returns.push((closes[i] - closes[i - 1]) / closes[i - 1]);
+    }
+    const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+    let num = 0;
+    let den = 0;
+    for (let i = 1; i < returns.length; i++) {
+      num += (returns[i] - avgReturn) * (returns[i - 1] - avgReturn);
+    }
+    for (let i = 0; i < returns.length; i++) {
+      den += Math.pow(returns[i] - avgReturn, 2);
+    }
+    const ar1Coef = den > 0 ? num / den : 0;
+
+    // 9. Advanced Trend Scoring (-12 to +12) - WEIGHTED
     let score = 0;
     // EMA Weight: 3
     if (ema20 > ema50) score += 3; else score -= 3;
@@ -256,45 +277,79 @@ export class PricePredictor {
     else if (score <= -7) trend = 'STRONG_DOWN';
     else if (score <= -2) trend = 'DOWN';
 
-    // 9. Support and Resistance Level Detection (from past 150 candles)
+    // 10. Support and Resistance Level Detection (from past 150 nến)
     const localMax = Math.max(...klines.slice(-150).map(k => parseFloat(k[2])));
     const localMin = Math.min(...klines.slice(-150).map(k => parseFloat(k[3])));
 
-    // 10. Monte Carlo Simulation (T+1 to T+24)
+    // 11. Asset Regime Classification
+    const isGold = originalSymbol.toUpperCase().includes('XAU') || 
+                   originalSymbol.toUpperCase().includes('GOLD') || 
+                   originalSymbol.toUpperCase().includes('PAXG');
+
+    // 12. Monte Carlo Simulation (T+1 to T+24)
     const numSimulations = 100;
     const steps = 24;
     const paths: number[][] = [];
 
     let volatility = atr14 / currentPrice;
     if (isNaN(volatility) || volatility <= 0) volatility = 0.002;
+    if (isGold) volatility = Math.min(volatility, 0.0015); // Commodities are generally less volatile than crypto
 
     for (let sim = 0; sim < numSimulations; sim++) {
       const path: number[] = [currentPrice];
       let p = currentPrice;
+      let simRes = localMax;
+      let simSup = localMin;
 
       for (let step = 1; step <= steps; step++) {
         const decayFactor = Math.pow(0.95, step);
-        let drift = (score / 12) * (volatility / 2) * decayFactor;
+        let drift = 0;
 
-        // EMA Mean Reversion (stronger if trend is weak)
-        const meanReversionStrength = adx < 20 ? 0.05 : 0.01;
-        const attractionToEMA = (ema20 - p) / ema20 * meanReversionStrength;
-        drift += attractionToEMA;
+        if (isGold) {
+          // --- Ornstein-Uhlenbeck (OU) Mean-Reverting Process for Gold ---
+          // Gold is fundamentally supply-demand bound and mean reverting to structural EMAs
+          const theta = adx > 25 ? 0.08 : 0.18; // Stronger mean reversion when ADX is low
+          const mu = (ema20 + ema50 + ema200) / 3; // Long term fair-value anchor
+          drift = theta * (mu - p) / p;
+        } else {
+          // --- Geometric Brownian Motion (GBM) with Momentum for Crypto ---
+          drift = (score / 12) * (volatility / 1.5) * decayFactor;
 
-        // Support / Resistance boundaries
-        const distToRes = (localMax - p) / localMax;
-        const distToSup = (p - localMin) / localMin;
+          // Autoregressive return momentum (fades out over time)
+          const arMomentum = ar1Coef * lastReturn * Math.pow(0.8, step);
+          drift += arMomentum;
 
-        // Rejection / Bounce forces
+          // Soft structural anchor to prevent exponential divergence in simulations
+          drift += (ema200 - p) / p * 0.005;
+        }
+
+        // --- Dynamic Support / Resistance Breakout & Rejection Simulation ---
+        const distToRes = (simRes - p) / simRes;
+        const distToSup = (p - simSup) / simSup;
+
         if (distToRes < 0.015) {
-          // If trend is not exceptionally strong, reject from resistance
-          if (score < 8 || adx < 25) {
-            drift -= volatility * (1.5 - distToRes * 100);
+          // Approaching Resistance
+          const breakProb = (score > 0 ? score / 12 : 0) * 0.4 + (adx > 25 ? 0.3 : 0.1) + (isVolumeSurge ? 0.3 : 0);
+          if (breakProb > 0.65) {
+            // BREAKOUT! Resistance turns to Support, price gets a momentum kick
+            drift += volatility * 0.5;
+            simSup = simRes; 
+            simRes = simRes * 1.05; 
+          } else {
+            // REJECTION! Price bounces down from resistance
+            drift -= volatility * (1.2 - distToRes * 50);
           }
         } else if (distToSup < 0.015) {
-          // Bounce from support
-          if (score > -8 || adx < 25) {
-            drift += volatility * (1.5 - distToSup * 100);
+          // Approaching Support
+          const breakProb = (score < 0 ? Math.abs(score) / 12 : 0) * 0.4 + (adx > 25 ? 0.3 : 0.1) + (isVolumeSurge ? 0.3 : 0);
+          if (breakProb > 0.65) {
+            // BREAKDOWN! Support turns to Resistance, price crashes
+            drift -= volatility * 0.5;
+            simRes = simSup; 
+            simSup = simSup * 0.95; 
+          } else {
+            // BOUNCE! Price bounces up from support
+            drift += volatility * (1.2 - distToSup * 50);
           }
         }
 
@@ -304,10 +359,10 @@ export class PricePredictor {
         // Box-Muller Transform for True Gaussian Random Shocks
         let u1 = Math.random();
         let u2 = Math.random();
-        if (u1 === 0) u1 = 0.0001; // Avoid log(0)
+        if (u1 === 0) u1 = 0.0001; 
         const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
 
-        const randomShock = z * stepVolatility * 0.7; // Scale shock slightly
+        const randomShock = z * stepVolatility * (isGold ? 0.5 : 0.8);
         p = p * (1 + drift + randomShock);
 
         path.push(p);
@@ -334,7 +389,7 @@ export class PricePredictor {
     const high = maxPrices[Math.floor(numSimulations * 0.90)];
     const low = minPrices[Math.floor(numSimulations * 0.10)];
 
-    // 11. Build Chart Data
+    // 13. Build Chart Data
     const labels: string[] = [];
     const historyData: (number | null)[] = [];
     const predictionData: (number | null)[] = [];
@@ -389,7 +444,7 @@ export class PricePredictor {
       volumeData.push(Number((avgVol * (0.5 + Math.random())).toFixed(2)));
     }
 
-    // 12. Generate QuickChart URL
+    // 14. Generate QuickChart URL
     const chartConfig = {
       type: 'line',
       data: {
@@ -464,6 +519,7 @@ export class PricePredictor {
       rsi: Number(rsi.toFixed(2)),
       ema20: Number(ema20.toFixed(2)),
       ema50: Number(ema50.toFixed(2)),
+      ema200: Number(ema200.toFixed(2)),
       macd: isMacdBullish ? 'BULLISH' : 'BEARISH',
       bbUpper: Number(bbUpper.toFixed(2)),
       bbLower: Number(bbLower.toFixed(2)),
