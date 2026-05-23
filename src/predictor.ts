@@ -15,6 +15,9 @@ export interface PredictionResult {
   predicted24hLow: number;
   chartUrl: string;
   trend: 'STRONG_UP' | 'UP' | 'NEUTRAL' | 'DOWN' | 'STRONG_DOWN';
+  adx?: number;
+  support?: number;
+  resistance?: number;
 }
 
 export class PricePredictor {
@@ -76,6 +79,9 @@ export class PricePredictor {
     const ema20 = ema20Arr[ema20Arr.length - 1];
     const ema50 = ema50Arr[ema50Arr.length - 1];
 
+    // Calculate EMA20 Slope over the last 5 candles
+    const ema20Slope = (ema20Arr[ema20Arr.length - 1] - ema20Arr[ema20Arr.length - 6]) / ema20Arr[ema20Arr.length - 6] * 100;
+
     // 2. Calculate PRO MACD (12, 26, 9) with Signal Line
     const ema12Arr = calcEMAArray(closes, 12);
     const ema26Arr = calcEMAArray(closes, 26);
@@ -134,17 +140,92 @@ export class PricePredictor {
     const last14TR = trArray.slice(-14);
     const atr14 = last14TR.reduce((a, b) => a + b, 0) / 14;
 
+    // Calculate Short-term ATR (5-period) vs. Long-term ATR (14-period) for Volatility Clustering
+    const last5TR = trArray.slice(-5);
+    const atr5 = last5TR.reduce((a, b) => a + b, 0) / 5;
+    const volExpansionFactor = atr14 > 0 ? atr5 / atr14 : 1.0;
+
     // 6. Calculate Volume 24h (6 candles * 4h = 24h) & Volume Surge
     const volume24h = volumes.slice(-6).reduce((a, b) => a + b, 0);
     const volSMA20 = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
     const currentVol = volumes[volumes.length - 1];
     const isVolumeSurge = currentVol > volSMA20 * 1.5;
 
-    // 7. Advanced Trend Scoring (-10 to +10) - WEIGHTED
+    // 7. Calculate ADX 14 (Wilder's Smoothing)
+    const adxPeriod = 14;
+    const plusDM: number[] = [];
+    const minusDM: number[] = [];
+    const tr: number[] = [];
+
+    for (let i = 1; i < klines.length; i++) {
+      const high = parseFloat(klines[i][2]);
+      const low = parseFloat(klines[i][3]);
+      const prevHigh = parseFloat(klines[i - 1][2]);
+      const prevLow = parseFloat(klines[i - 1][3]);
+      const prevClose = parseFloat(klines[i - 1][4]);
+
+      const upMove = high - prevHigh;
+      const downMove = prevLow - low;
+
+      let dmPlus = 0;
+      let dmMinus = 0;
+
+      if (upMove > 0 && upMove > downMove) {
+        dmPlus = upMove;
+      }
+      if (downMove > 0 && downMove > upMove) {
+        dmMinus = downMove;
+      }
+
+      plusDM.push(dmPlus);
+      minusDM.push(dmMinus);
+
+      const trueRange = Math.max(
+        high - low,
+        Math.abs(high - prevClose),
+        Math.abs(low - prevClose)
+      );
+      tr.push(trueRange);
+    }
+
+    let smoothedPlusDM = plusDM.slice(0, adxPeriod).reduce((a, b) => a + b, 0);
+    let smoothedMinusDM = minusDM.slice(0, adxPeriod).reduce((a, b) => a + b, 0);
+    let smoothedTR = tr.slice(0, adxPeriod).reduce((a, b) => a + b, 0);
+
+    const dxValues: number[] = [];
+
+    for (let i = adxPeriod; i < tr.length; i++) {
+      smoothedPlusDM = smoothedPlusDM - (smoothedPlusDM / adxPeriod) + plusDM[i];
+      smoothedMinusDM = smoothedMinusDM - (smoothedMinusDM / adxPeriod) + minusDM[i];
+      smoothedTR = smoothedTR - (smoothedTR / adxPeriod) + tr[i];
+
+      const plusDI = smoothedTR > 0 ? (smoothedPlusDM / smoothedTR) * 100 : 0;
+      const minusDI = smoothedTR > 0 ? (smoothedMinusDM / smoothedTR) * 100 : 0;
+
+      const sum = plusDI + minusDI;
+      const diff = Math.abs(plusDI - minusDI);
+      const dx = sum > 0 ? (diff / sum) * 100 : 0;
+      dxValues.push(dx);
+    }
+
+    let adx = 50;
+    if (dxValues.length >= adxPeriod) {
+      let smoothedADX = dxValues.slice(0, adxPeriod).reduce((a, b) => a + b, 0) / adxPeriod;
+      for (let i = adxPeriod; i < dxValues.length; i++) {
+        smoothedADX = (smoothedADX * (adxPeriod - 1) + dxValues[i]) / adxPeriod;
+      }
+      adx = smoothedADX;
+    }
+
+    // 8. Advanced Trend Scoring (-12 to +12) - WEIGHTED
     let score = 0;
     // EMA Weight: 3
     if (ema20 > ema50) score += 3; else score -= 3;
     
+    // EMA Slope Weight: 2
+    if (ema20Slope > 0.05) score += 2;
+    else if (ema20Slope < -0.05) score -= 2;
+
     // MACD Weight: 2
     if (isMacdBullish) score += 2; else score -= 2;
 
@@ -154,19 +235,106 @@ export class PricePredictor {
       else score -= 2;
     }
 
-    // RSI contrarian/trend Weight: 3
-    if (rsi < 30) score += 3; // Extreme Oversold
-    else if (rsi < 40) score += 1; 
-    if (rsi > 70) score -= 3; // Extreme Overbought
-    else if (rsi > 60) score -= 1;
+    // RSI contrarian / trend rules
+    if (adx > 25) {
+      // Strong trend: RSI confirms trend direction
+      if (ema20 > ema50 && rsi > 60) score += 3;
+      if (ema20 < ema50 && rsi < 40) score -= 3;
+    } else {
+      // Weak/Ranging trend: RSI acts as contrarian indicator
+      if (rsi < 30) score += 3; // Extreme Oversold
+      else if (rsi < 40) score += 1; 
+      if (rsi > 70) score -= 3; // Extreme Overbought
+      else if (rsi > 60) score -= 1;
+    }
+
+    score = Math.max(-12, Math.min(12, score));
 
     let trend: 'STRONG_UP' | 'UP' | 'NEUTRAL' | 'DOWN' | 'STRONG_DOWN' = 'NEUTRAL';
-    if (score >= 6) trend = 'STRONG_UP';
+    if (score >= 7) trend = 'STRONG_UP';
     else if (score >= 2) trend = 'UP';
-    else if (score <= -6) trend = 'STRONG_DOWN';
+    else if (score <= -7) trend = 'STRONG_DOWN';
     else if (score <= -2) trend = 'DOWN';
 
-    // 8. Build Chart Data
+    // 9. Support and Resistance Level Detection (from past 150 candles)
+    const localMax = Math.max(...klines.slice(-150).map(k => parseFloat(k[2])));
+    const localMin = Math.min(...klines.slice(-150).map(k => parseFloat(k[3])));
+
+    // 10. Monte Carlo Simulation (T+1 to T+24)
+    const numSimulations = 100;
+    const steps = 24;
+    const paths: number[][] = [];
+
+    let volatility = atr14 / currentPrice;
+    if (isNaN(volatility) || volatility <= 0) volatility = 0.002;
+
+    for (let sim = 0; sim < numSimulations; sim++) {
+      const path: number[] = [currentPrice];
+      let p = currentPrice;
+
+      for (let step = 1; step <= steps; step++) {
+        const decayFactor = Math.pow(0.95, step);
+        let drift = (score / 12) * (volatility / 2) * decayFactor;
+
+        // EMA Mean Reversion (stronger if trend is weak)
+        const meanReversionStrength = adx < 20 ? 0.05 : 0.01;
+        const attractionToEMA = (ema20 - p) / ema20 * meanReversionStrength;
+        drift += attractionToEMA;
+
+        // Support / Resistance boundaries
+        const distToRes = (localMax - p) / localMax;
+        const distToSup = (p - localMin) / localMin;
+
+        // Rejection / Bounce forces
+        if (distToRes < 0.015) {
+          // If trend is not exceptionally strong, reject from resistance
+          if (score < 8 || adx < 25) {
+            drift -= volatility * (1.5 - distToRes * 100);
+          }
+        } else if (distToSup < 0.015) {
+          // Bounce from support
+          if (score > -8 || adx < 25) {
+            drift += volatility * (1.5 - distToSup * 100);
+          }
+        }
+
+        // Volatility clustering adjustment
+        const stepVolatility = volatility * Math.sqrt(volExpansionFactor);
+
+        // Box-Muller Transform for True Gaussian Random Shocks
+        let u1 = Math.random();
+        let u2 = Math.random();
+        if (u1 === 0) u1 = 0.0001; // Avoid log(0)
+        const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+
+        const randomShock = z * stepVolatility * 0.7; // Scale shock slightly
+        p = p * (1 + drift + randomShock);
+
+        path.push(p);
+      }
+      paths.push(path);
+    }
+
+    // Compute expected (average) path
+    const avgPath: number[] = [];
+    for (let step = 0; step <= steps; step++) {
+      let sum = 0;
+      for (let sim = 0; sim < numSimulations; sim++) {
+        sum += paths[sim][step];
+      }
+      avgPath.push(sum / numSimulations);
+    }
+
+    // Find 90th and 10th percentile high/low over simulation period
+    const maxPrices = paths.map(path => Math.max(...path.slice(1)));
+    const minPrices = paths.map(path => Math.min(...path.slice(1)));
+    maxPrices.sort((a, b) => a - b);
+    minPrices.sort((a, b) => a - b);
+
+    const high = maxPrices[Math.floor(numSimulations * 0.90)];
+    const low = minPrices[Math.floor(numSimulations * 0.10)];
+
+    // 11. Build Chart Data
     const labels: string[] = [];
     const historyData: (number | null)[] = [];
     const predictionData: (number | null)[] = [];
@@ -198,68 +366,30 @@ export class PricePredictor {
       predictionData.push(i === 23 ? Number(last24Closes[i].toFixed(2)) : null);
       volumeData.push(Number(last24Volumes[i].toFixed(2)));
 
-      // We don't render BB for history to keep chart clean, only for prediction zone
       upperBandData.push(null);
       lowerBandData.push(null);
     }
 
-    // Prediction (T+1 to T+24) - Mean Reverting Stochastic Model
-    let predPrice = currentPrice;
-    let high = predPrice;
-    let low = predPrice;
-
-    // Advanced volatility estimate using ATR (Average True Range)
-    // ATR / Price gives a much better % of average movement per hour
-    let volatility = atr14 / currentPrice;
-    if (isNaN(volatility) || volatility <= 0) volatility = 0.002;
-
-    // Dynamic bands for prediction (they expand slightly)
-    let currentBbUpper = bbUpper;
-    let currentBbLower = bbLower;
-
+    // Prediction (T+1 to T+24)
     for (let i = 1; i <= 24; i++) {
       labels.push(formatTime(currentTs + i * 4 * 3600 * 1000));
 
-      // 1. Base drift from Trend with Decay (Momentum fades over time)
-      const decayFactor = Math.pow(0.96, i); 
-      let drift = (score / 10) * (volatility / 2) * decayFactor;
-
-      // 2. EMA Attraction (Price tends to revert to the mean/EMA20)
-      const attractionToEMA = (ema20 - predPrice) / ema20 * 0.02;
-      drift += attractionToEMA;
-
-      // 3. Mean Reversion (Bollinger Band constraints)
-      const distToUpper = (currentBbUpper - predPrice) / currentBbUpper;
-      const distToLower = (predPrice - currentBbLower) / currentBbLower;
-
-      if (distToUpper < 0.01) {
-        drift -= volatility * (1.2 - distToUpper * 100); 
-      } else if (distToLower < 0.01) {
-        drift += volatility * (1.2 - distToLower * 100);
-      }
-
-      // 4. Stochastic Noise (Brownian motion with volatility scaling)
-      const randomShock = (Math.random() * 2 - 1) * volatility * 0.8;
-      predPrice = predPrice * (1 + drift + randomShock);
-
-      // Expand bands (uncertainty grows logarithmically)
-      currentBbUpper *= (1 + 0.00015 * Math.sqrt(i));
-      currentBbLower *= (1 - 0.00015 * Math.sqrt(i));
-
       historyData.push(null);
-      predictionData.push(Number(predPrice.toFixed(2)));
-      upperBandData.push(i === 1 ? null : Number(currentBbUpper.toFixed(2)));
-      lowerBandData.push(i === 1 ? null : Number(currentBbLower.toFixed(2)));
+      predictionData.push(Number(avgPath[i].toFixed(2)));
+
+      const stepPrices = paths.map(path => path[i]).sort((a, b) => a - b);
+      const stepUpper = stepPrices[Math.floor(numSimulations * 0.90)];
+      const stepLower = stepPrices[Math.floor(numSimulations * 0.10)];
+
+      upperBandData.push(i === 1 ? null : Number(stepUpper.toFixed(2)));
+      lowerBandData.push(i === 1 ? null : Number(stepLower.toFixed(2)));
 
       // predict volume based on average
       const avgVol = volume24h / 24;
       volumeData.push(Number((avgVol * (0.5 + Math.random())).toFixed(2)));
-
-      if (predPrice > high) high = predPrice;
-      if (predPrice < low) low = predPrice;
     }
 
-    // 6. Generate QuickChart URL
+    // 12. Generate QuickChart URL
     const chartConfig = {
       type: 'line',
       data: {
@@ -283,7 +413,7 @@ export class PricePredictor {
             yAxisID: 'y',
           },
           {
-            label: 'BB Upper',
+            label: 'Conf Upper (90%)',
             data: upperBandData,
             borderColor: 'rgba(149, 165, 166, 0.5)',
             borderDash: [2, 2],
@@ -293,7 +423,7 @@ export class PricePredictor {
             yAxisID: 'y',
           },
           {
-            label: 'BB Lower',
+            label: 'Conf Lower (10%)',
             data: lowerBandData,
             borderColor: 'rgba(149, 165, 166, 0.5)',
             borderDash: [2, 2],
@@ -314,7 +444,7 @@ export class PricePredictor {
       options: {
         title: {
           display: true,
-          text: `${originalSymbol} - AI 4H Prediction (EMA, MACD, RSI, ATR, BB)`,
+          text: `${originalSymbol} - Professional AI 4H Forecast (ADX, RSI, MACD, S/R, Monte Carlo)`,
           fontSize: 16
         },
         scales: {
@@ -338,10 +468,13 @@ export class PricePredictor {
       bbUpper: Number(bbUpper.toFixed(2)),
       bbLower: Number(bbLower.toFixed(2)),
       volume24h: Number(volume24h.toFixed(2)),
-      predicted24hHigh: Number(high.toFixed(2)), // This is now 96h High
-      predicted24hLow: Number(low.toFixed(2)),  // This is now 96h Low
+      predicted24hHigh: Number(high.toFixed(2)), // 96h Expected High
+      predicted24hLow: Number(low.toFixed(2)),  // 96h Expected Low
       chartUrl,
-      trend
+      trend,
+      adx: Number(adx.toFixed(2)),
+      support: Number(localMin.toFixed(2)),
+      resistance: Number(localMax.toFixed(2))
     };
   }
 }
