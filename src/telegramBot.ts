@@ -251,6 +251,32 @@ export class TelegramBotService {
     // --- /predict command ---
     this.bot.onText(/\/predict(?:_(\w+))?(?:\s+(.+))?/, async (msg, match) => {
       const chatId = msg.chat.id;
+
+      const isUserVip = isAdmin(chatId) || await this.userManager.isVip(chatId.toString());
+      if (!isUserVip) {
+        const adminUsername = this.config.notifications.telegramAdminUsername;
+        const options: any = { parse_mode: 'Markdown' };
+
+        if (adminUsername) {
+          const prefilledMsg = encodeURIComponent(`Đăng ký VIP - Chat ID: ${chatId}`);
+          options.reply_markup = {
+            inline_keyboard: [[
+              {
+                text: '📩 Liên hệ Admin đăng ký VIP',
+                url: `https://t.me/${adminUsername}?text=${prefilledMsg}`
+              }
+            ]]
+          };
+        }
+
+        await this.bot.sendMessage(
+          chatId,
+          `🚫 Lệnh này chỉ dành cho tài khoản VIP. Vui lòng liên hệ Admin để đăng ký VIP.`,
+          options
+        );
+        return;
+      }
+
       const requestedSymbol = (match?.[1] || match?.[2])?.trim().toUpperCase();
 
       logger.info(`[Telegram] Received /predict command from ${chatId} for ${requestedSymbol || 'ALL'}`);
