@@ -302,6 +302,7 @@ export class TelegramBotService {
               `• Support (25D): $${result.support ? result.support.toLocaleString('en-US') : 'N/A'}`,
               `• Resistance (25D): $${result.resistance ? result.resistance.toLocaleString('en-US') : 'N/A'}`,
               `• ADX (14): ${result.adx !== undefined ? result.adx.toFixed(1) : 'N/A'} (${result.adx !== undefined && result.adx > 25 ? 'Strong Trend' : 'Ranging/Weak Trend'})`,
+              `• CMF (20): ${result.cmf !== undefined ? result.cmf.toFixed(2) : 'N/A'} (${result.cmf !== undefined && result.cmf > 0.1 ? 'Accumulation' : result.cmf !== undefined && result.cmf < -0.1 ? 'Distribution' : 'Neutral'})`,
               `• RSI (14): ${result.rsi} ${result.rsi > 70 ? '(Overbought)' : result.rsi < 30 ? '(Oversold)' : '(Neutral)'}`,
               `• EMA (20/50/200): $${result.ema20.toLocaleString('en-US')} / $${result.ema50.toLocaleString('en-US')} / $${result.ema200 ? result.ema200.toLocaleString('en-US') : 'N/A'}`,
               `• MACD: *${result.macd}*`,

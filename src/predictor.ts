@@ -19,6 +19,7 @@ export interface PredictionResult {
   adx?: number;
   support?: number;
   resistance?: number;
+  cmf?: number;
 }
 
 export class PricePredictor {
@@ -156,7 +157,41 @@ export class PricePredictor {
     const currentVol = volumes[volumes.length - 1];
     const isVolumeSurge = currentVol > volSMA20 * 1.5;
 
-    // 7. Calculate ADX 14 (Wilder's Smoothing)
+    // 7. Calculate Chaikin Money Flow (CMF) 20
+    let mfvSum = 0;
+    let volSum = 0;
+    for (let i = klines.length - 20; i < klines.length; i++) {
+      const h = parseFloat(klines[i][2]);
+      const l = parseFloat(klines[i][3]);
+      const c = parseFloat(klines[i][4]);
+      const v = parseFloat(klines[i][5]);
+
+      const range = h - l;
+      const mfv = range > 0 ? (((c - l) - (h - c)) / range) * v : 0;
+      mfvSum += mfv;
+      volSum += v;
+    }
+    const cmf = volSum > 0 ? mfvSum / volSum : 0;
+
+    // 8. Calculate Garman-Klass Volatility Estimator (20 periods)
+    let gkSum = 0;
+    const gkPeriod = 20;
+    for (let i = klines.length - gkPeriod; i < klines.length; i++) {
+      const o = parseFloat(klines[i][1]);
+      const h = parseFloat(klines[i][2]);
+      const l = parseFloat(klines[i][3]);
+      const c = parseFloat(klines[i][4]);
+
+      const logHL = Math.log(h / l);
+      const logCO = Math.log(c / o);
+
+      const term1 = 0.5 * Math.pow(logHL, 2);
+      const term2 = (2 * Math.log(2) - 1) * Math.pow(logCO, 2);
+      gkSum += (term1 - term2);
+    }
+    const gkVol = Math.sqrt(gkSum / gkPeriod);
+
+    // 9. Calculate ADX 14 with DI+ and DI- (Wilder's Smoothing)
     const adxPeriod = 14;
     const plusDM: number[] = [];
     const minusDM: number[] = [];
@@ -198,14 +233,16 @@ export class PricePredictor {
     let smoothedTR = tr.slice(0, adxPeriod).reduce((a, b) => a + b, 0);
 
     const dxValues: number[] = [];
+    let plusDI = 0;
+    let minusDI = 0;
 
     for (let i = adxPeriod; i < tr.length; i++) {
       smoothedPlusDM = smoothedPlusDM - (smoothedPlusDM / adxPeriod) + plusDM[i];
       smoothedMinusDM = smoothedMinusDM - (smoothedMinusDM / adxPeriod) + minusDM[i];
       smoothedTR = smoothedTR - (smoothedTR / adxPeriod) + tr[i];
 
-      const plusDI = smoothedTR > 0 ? (smoothedPlusDM / smoothedTR) * 100 : 0;
-      const minusDI = smoothedTR > 0 ? (smoothedMinusDM / smoothedTR) * 100 : 0;
+      plusDI = smoothedTR > 0 ? (smoothedPlusDM / smoothedTR) * 100 : 0;
+      minusDI = smoothedTR > 0 ? (smoothedMinusDM / smoothedTR) * 100 : 0;
 
       const sum = plusDI + minusDI;
       const diff = Math.abs(plusDI - minusDI);
@@ -222,7 +259,7 @@ export class PricePredictor {
       adx = smoothedADX;
     }
 
-    // 8. Calculate Autoregressive Return Coefficient AR(1) of last 30 candles
+    // 10. Calculate Autoregressive Return Coefficient AR(1) of last 30 candles
     const returns: number[] = [];
     for (let i = closes.length - 30; i < closes.length; i++) {
       returns.push((closes[i] - closes[i - 1]) / closes[i - 1]);
@@ -238,7 +275,7 @@ export class PricePredictor {
     }
     const ar1Coef = den > 0 ? num / den : 0;
 
-    // 9. Advanced Trend Scoring (-12 to +12) - WEIGHTED
+    // 11. Advanced Trend Scoring (-15 to +15) - WEIGHTED
     let score = 0;
     // EMA Weight: 3
     if (ema20 > ema50) score += 3; else score -= 3;
@@ -256,11 +293,18 @@ export class PricePredictor {
       else score -= 2;
     }
 
+    // DMI Crossover Weight: 2
+    if (plusDI > minusDI) score += 2; else score -= 2;
+
+    // CMF (Chaikin Money Flow) Weight: 2
+    if (cmf > 0.1) score += 2;
+    else if (cmf < -0.1) score -= 2;
+
     // RSI contrarian / trend rules
     if (adx > 25) {
       // Strong trend: RSI confirms trend direction
-      if (ema20 > ema50 && rsi > 60) score += 3;
-      if (ema20 < ema50 && rsi < 40) score -= 3;
+      if (ema20 > ema50 && rsi > 60) score += 2;
+      if (ema20 < ema50 && rsi < 40) score -= 2;
     } else {
       // Weak/Ranging trend: RSI acts as contrarian indicator
       if (rsi < 30) score += 3; // Extreme Oversold
@@ -269,31 +313,32 @@ export class PricePredictor {
       else if (rsi > 60) score -= 1;
     }
 
-    score = Math.max(-12, Math.min(12, score));
+    score = Math.max(-15, Math.min(15, score));
 
     let trend: 'STRONG_UP' | 'UP' | 'NEUTRAL' | 'DOWN' | 'STRONG_DOWN' = 'NEUTRAL';
-    if (score >= 7) trend = 'STRONG_UP';
-    else if (score >= 2) trend = 'UP';
-    else if (score <= -7) trend = 'STRONG_DOWN';
-    else if (score <= -2) trend = 'DOWN';
+    if (score >= 9) trend = 'STRONG_UP';
+    else if (score >= 3) trend = 'UP';
+    else if (score <= -9) trend = 'STRONG_DOWN';
+    else if (score <= -3) trend = 'DOWN';
 
-    // 10. Support and Resistance Level Detection (from past 150 nến)
+    // 12. Support and Resistance Level Detection (from past 150 nến)
     const localMax = Math.max(...klines.slice(-150).map(k => parseFloat(k[2])));
     const localMin = Math.min(...klines.slice(-150).map(k => parseFloat(k[3])));
 
-    // 11. Asset Regime Classification
+    // 13. Asset Regime Classification
     const isGold = originalSymbol.toUpperCase().includes('XAU') || 
                    originalSymbol.toUpperCase().includes('GOLD') || 
                    originalSymbol.toUpperCase().includes('PAXG');
 
-    // 12. Monte Carlo Simulation (T+1 to T+24)
+    // 14. Monte Carlo Simulation (T+1 to T+24)
     const numSimulations = 100;
     const steps = 24;
     const paths: number[][] = [];
 
-    let volatility = atr14 / currentPrice;
+    // Use Garman-Klass Volatility (much more precise range-based estimate)
+    let volatility = gkVol;
     if (isNaN(volatility) || volatility <= 0) volatility = 0.002;
-    if (isGold) volatility = Math.min(volatility, 0.0015); // Commodities are generally less volatile than crypto
+    if (isGold) volatility = Math.min(volatility, 0.0012);
 
     for (let sim = 0; sim < numSimulations; sim++) {
       const path: number[] = [currentPrice];
@@ -305,22 +350,33 @@ export class PricePredictor {
         const decayFactor = Math.pow(0.95, step);
         let drift = 0;
 
+        // Long-term Stretch Pull (rubber-band effect from EMA200)
+        const stretch = (p - ema200) / ema200;
+        let stretchPull = 0;
+        if (Math.abs(stretch) > 0.06) {
+          stretchPull = -Math.sign(stretch) * Math.pow(Math.abs(stretch), 1.5) * 0.08;
+        }
+
         if (isGold) {
-          // --- Ornstein-Uhlenbeck (OU) Mean-Reverting Process for Gold ---
-          // Gold is fundamentally supply-demand bound and mean reverting to structural EMAs
-          const theta = adx > 25 ? 0.08 : 0.18; // Stronger mean reversion when ADX is low
-          const mu = (ema20 + ema50 + ema200) / 3; // Long term fair-value anchor
-          drift = theta * (mu - p) / p;
+          // --- Ornstein-Uhlenbeck (OU) with Trend Drift for Gold ---
+          const isStrongTrend = adx > 25 && Math.abs(score) >= 7;
+          const theta = isStrongTrend ? 0.03 : (adx > 25 ? 0.08 : 0.15);
+          const mu = (ema20 + ema50 + ema200) / 3;
+          
+          const reversionForce = theta * (mu - p) / p;
+          const trendForce = (score / 15) * volatility * 2.0 * decayFactor;
+          
+          drift = reversionForce + trendForce + stretchPull;
         } else {
           // --- Geometric Brownian Motion (GBM) with Momentum for Crypto ---
-          drift = (score / 12) * (volatility / 1.5) * decayFactor;
+          drift = (score / 15) * (volatility / 1.5) * decayFactor;
 
           // Autoregressive return momentum (fades out over time)
           const arMomentum = ar1Coef * lastReturn * Math.pow(0.8, step);
           drift += arMomentum;
 
-          // Soft structural anchor to prevent exponential divergence in simulations
-          drift += (ema200 - p) / p * 0.005;
+          // Soft structural anchor to prevent exponential divergence
+          drift += (ema200 - p) / p * 0.003 + stretchPull;
         }
 
         // --- Dynamic Support / Resistance Breakout & Rejection Simulation ---
@@ -329,27 +385,29 @@ export class PricePredictor {
 
         if (distToRes < 0.015) {
           // Approaching Resistance
-          const breakProb = (score > 0 ? score / 12 : 0) * 0.4 + (adx > 25 ? 0.3 : 0.1) + (isVolumeSurge ? 0.3 : 0);
+          const breakProb = (score > 0 ? score / 15 : 0) * 0.4 + (adx > 25 ? 0.2 : 0.05) + (cmf > 0.1 ? 0.2 : 0) + (isVolumeSurge ? 0.25 : 0);
           if (breakProb > 0.65) {
-            // BREAKOUT! Resistance turns to Support, price gets a momentum kick
+            // BREAKOUT!
             drift += volatility * 0.5;
             simSup = simRes; 
             simRes = simRes * 1.05; 
           } else {
-            // REJECTION! Price bounces down from resistance
-            drift -= volatility * (1.2 - distToRes * 50);
+            // REJECTION! Price bounces down
+            const trendMitigation = score > 0 ? (1 - score / 15) : 1;
+            drift -= volatility * (0.5 - distToRes * 20) * trendMitigation;
           }
         } else if (distToSup < 0.015) {
           // Approaching Support
-          const breakProb = (score < 0 ? Math.abs(score) / 12 : 0) * 0.4 + (adx > 25 ? 0.3 : 0.1) + (isVolumeSurge ? 0.3 : 0);
+          const breakProb = (score < 0 ? Math.abs(score) / 15 : 0) * 0.4 + (adx > 25 ? 0.2 : 0.05) + (cmf < -0.1 ? 0.2 : 0) + (isVolumeSurge ? 0.25 : 0);
           if (breakProb > 0.65) {
-            // BREAKDOWN! Support turns to Resistance, price crashes
+            // BREAKDOWN!
             drift -= volatility * 0.5;
             simRes = simSup; 
             simSup = simSup * 0.95; 
           } else {
-            // BOUNCE! Price bounces up from support
-            drift += volatility * (1.2 - distToSup * 50);
+            // BOUNCE! Price bounces up
+            const trendMitigation = score < 0 ? (1 - Math.abs(score) / 15) : 1;
+            drift += volatility * (0.5 - distToSup * 20) * trendMitigation;
           }
         }
 
@@ -389,7 +447,7 @@ export class PricePredictor {
     const high = maxPrices[Math.floor(numSimulations * 0.90)];
     const low = minPrices[Math.floor(numSimulations * 0.10)];
 
-    // 13. Build Chart Data
+    // 15. Build Chart Data
     const labels: string[] = [];
     const historyData: (number | null)[] = [];
     const predictionData: (number | null)[] = [];
@@ -444,7 +502,7 @@ export class PricePredictor {
       volumeData.push(Number((avgVol * (0.5 + Math.random())).toFixed(2)));
     }
 
-    // 14. Generate QuickChart URL
+    // 16. Generate QuickChart URL
     const chartConfig = {
       type: 'line',
       data: {
@@ -499,7 +557,7 @@ export class PricePredictor {
       options: {
         title: {
           display: true,
-          text: `${originalSymbol} - Professional AI 4H Forecast (ADX, RSI, MACD, S/R, Monte Carlo)`,
+          text: `${originalSymbol} - Professional AI 4H Forecast (ADX, RSI, MACD, CMF, S/R, GK Vol, Monte Carlo)`,
           fontSize: 16
         },
         scales: {
@@ -530,7 +588,8 @@ export class PricePredictor {
       trend,
       adx: Number(adx.toFixed(2)),
       support: Number(localMin.toFixed(2)),
-      resistance: Number(localMax.toFixed(2))
+      resistance: Number(localMax.toFixed(2)),
+      cmf: Number(cmf.toFixed(3))
     };
   }
 }
