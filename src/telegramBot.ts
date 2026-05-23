@@ -165,6 +165,7 @@ export class TelegramBotService {
               const payload: AlertPayload = {
                 symbol,
                 direction: changePercent >= 0 ? "UP" : "DOWN",
+                changePercent,
                 currentPrice: assetPrice.price,
                 currentTimestamp: assetPrice.timestamp,
                 exchangeRateVND: exchangeRateVND,

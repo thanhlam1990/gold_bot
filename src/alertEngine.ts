@@ -35,14 +35,18 @@ export function buildAlertMessage(payload: AlertPayload): string {
     ? `⏱ ${payload.symbol} REPORT`
     : `${arrow} ${payload.symbol} PRICE ${payload.direction}`;
 
+  const changeSign = payload.changePercent >= 0 ? "+" : "";
+  const changeFormatted = `${changeSign}${payload.changePercent.toFixed(2)}%`;
+
   return [
     title,
     ``,
     `  Current  : ${payload.currentPrice.toLocaleString('en-US')} / USD`,
     `  Rate     : ${payload.exchangeRateVND !== null ? payload.exchangeRateVND.toLocaleString('vi-VN') + ' VND / USD' : '--'}`,
     `  Amount   : ${payload.amountVND !== null ? payload.amountVND.toLocaleString('vi-VN') + ' VND' : '--'}`,
+    `  Change   : ${changeFormatted}`,
     ``,
-    `  Now       : ${payload.currentTimestamp.toLocaleString("vi-VN")}`,
+    `  Time     : ${payload.currentTimestamp.toLocaleString("vi-VN")}`,
   ].join("\n");
 }
 
@@ -77,6 +81,7 @@ async function notifyWebhook(
     event: "asset_price_alert",
     symbol: payload.symbol,
     direction: payload.direction,
+    changePercent: payload.changePercent,
     currentPrice: payload.currentPrice,
     exchangeRateVND: payload.exchangeRateVND,
     amountVND: payload.amountVND,
@@ -154,6 +159,7 @@ export class AlertEngine {
     const payload: AlertPayload = {
       symbol,
       direction: changePercent >= 0 ? "UP" : "DOWN",
+      changePercent,
       currentPrice: currentPrice,
       currentTimestamp: currentTimestamp,
       exchangeRateVND: exchangeRateVND,
