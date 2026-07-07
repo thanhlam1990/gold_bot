@@ -165,6 +165,7 @@ export class TelegramBotService {
               const payload: AlertPayload = {
                 symbol,
                 direction: changePercent >= 0 ? "UP" : "DOWN",
+                changePercent,
                 currentPrice: assetPrice.price,
                 currentTimestamp: assetPrice.timestamp,
                 exchangeRateVND: exchangeRateVND,
@@ -250,6 +251,32 @@ export class TelegramBotService {
     // --- /predict command ---
     this.bot.onText(/\/predict(?:_(\w+))?(?:\s+(.+))?/, async (msg, match) => {
       const chatId = msg.chat.id;
+
+      const isUserVip = isAdmin(chatId) || await this.userManager.isVip(chatId.toString());
+      if (!isUserVip) {
+        const adminUsername = this.config.notifications.telegramAdminUsername;
+        const options: any = { parse_mode: 'Markdown' };
+
+        if (adminUsername) {
+          const prefilledMsg = encodeURIComponent(`Đăng ký VIP - Chat ID: ${chatId}`);
+          options.reply_markup = {
+            inline_keyboard: [[
+              {
+                text: '📩 Liên hệ Admin đăng ký VIP',
+                url: `https://t.me/${adminUsername}?text=${prefilledMsg}`
+              }
+            ]]
+          };
+        }
+
+        await this.bot.sendMessage(
+          chatId,
+          `🚫 Lệnh này chỉ dành cho tài khoản VIP. Vui lòng liên hệ Admin để đăng ký VIP.`,
+          options
+        );
+        return;
+      }
+
       const requestedSymbol = (match?.[1] || match?.[2])?.trim().toUpperCase();
 
       logger.info(`[Telegram] Received /predict command from ${chatId} for ${requestedSymbol || 'ALL'}`);
@@ -268,14 +295,17 @@ export class TelegramBotService {
               `🔮 *${symbol} 96h (4-DAY) PREDICTION*`,
               ``,
               `💵 Current Price: *$${result.currentPrice.toLocaleString('en-US')}*`,
-              `📈 Predicted High (4D): $${result.predicted24hHigh.toLocaleString('en-US')}`,
-              `📉 Predicted Low (4D):  $${result.predicted24hLow.toLocaleString('en-US')}`,
+              `📈 Predicted High (4D): *$${result.predicted24hHigh.toLocaleString('en-US')}*`,
+              `📉 Predicted Low (4D):  *$${result.predicted24hLow.toLocaleString('en-US')}*`,
               ``,
-              `📊 *Technical Indicators (PRO)*`,
+              `📊 *Key Levels & Indicators (PRO)*`,
+              `• Support (25D): $${result.support ? result.support.toLocaleString('en-US') : 'N/A'}`,
+              `• Resistance (25D): $${result.resistance ? result.resistance.toLocaleString('en-US') : 'N/A'}`,
+              `• ADX (14): ${result.adx !== undefined ? result.adx.toFixed(1) : 'N/A'} (${result.adx !== undefined && result.adx > 25 ? 'Strong Trend' : 'Ranging/Weak Trend'})`,
+              `• CMF (20): ${result.cmf !== undefined ? result.cmf.toFixed(2) : 'N/A'} (${result.cmf !== undefined && result.cmf > 0.1 ? 'Accumulation' : result.cmf !== undefined && result.cmf < -0.1 ? 'Distribution' : 'Neutral'})`,
               `• RSI (14): ${result.rsi} ${result.rsi > 70 ? '(Overbought)' : result.rsi < 30 ? '(Oversold)' : '(Neutral)'}`,
-              `• EMA (20/50): $${result.ema20.toLocaleString('en-US')} / $${result.ema50.toLocaleString('en-US')}`,
+              `• EMA (20/50/200): $${result.ema20.toLocaleString('en-US')} / $${result.ema50.toLocaleString('en-US')} / $${result.ema200 ? result.ema200.toLocaleString('en-US') : 'N/A'}`,
               `• MACD: *${result.macd}*`,
-              `• Bollinger Bands: $${result.bbLower.toLocaleString('en-US')} - $${result.bbUpper.toLocaleString('en-US')}`,
               `• Projected Trend: *${result.trend}*`,
               ``,
               `_Note: This is an automated prediction based on algorithmic simulation. Not financial advice._`
