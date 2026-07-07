@@ -32,26 +32,60 @@ export class PricePredictor {
   }
 
   /**
+   * Normalize Bybit kline data to Binance kline format.
+   * Bybit: [startTimeMs, open, high, low, close, volume, turnover] — reverse chronological
+   * Binance: [openTimeMs, open, high, low, close, volume, closeTimeMs, ...] — chronological
+   */
+  private normalizeBybitKlines(bybitList: any[]): any[] {
+    // Bybit returns newest-first → reverse to oldest-first
+    const sorted = [...bybitList].reverse();
+    return sorted.map(k => [
+      Number(k[0]),  // [0] openTime (ms)
+      k[1],          // [1] open
+      k[2],          // [2] high
+      k[3],          // [3] low
+      k[4],          // [4] close
+      k[5],          // [5] volume
+      Number(k[0]) + 4 * 3600 * 1000 - 1, // [6] closeTime (approx)
+    ]);
+  }
+
+  /**
    * Fetch real historical data and generate prediction chart
    */
   public async generatePrediction(originalSymbol: string): Promise<PredictionResult> {
     const binanceSymbol = this.getBinanceSymbol(originalSymbol);
-    logger.info(`Fetching real Klines from Binance for ${binanceSymbol} (mapped from ${originalSymbol})`);
+    logger.info(`Fetching real Klines from Bybit for ${binanceSymbol} (mapped from ${originalSymbol})`);
 
-    // Fetch 500 periods of 4h data for deep analysis (approx 83 days)
-    const url = `https://api1.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=4h&limit=500`;
+    // Fetch 500 periods of 4h data for deep analysis (approx 83 days) via Bybit
+    const bybitUrl = `https://api.bybit.com/v5/market/kline?category=spot&symbol=${binanceSymbol}&interval=240&limit=500`;
 
     let klines: any[] = [];
+    let lastError: Error | null = null;
+
     try {
-      const response = await axios.get(url, { timeout: 10000 });
-      klines = response.data;
+      logger.info(`Fetching from Bybit: ${bybitUrl}`);
+      const response = await axios.get(bybitUrl, { timeout: 10000 });
+      const bybitData = response.data?.result?.list;
+      if (Array.isArray(bybitData) && bybitData.length > 0) {
+        klines = this.normalizeBybitKlines(bybitData);
+        logger.info(`Bybit OK — ${klines.length} candles fetched.`);
+      } else {
+        throw new Error('Bybit returned empty or invalid data');
+      }
     } catch (err) {
-		console.log(err)
-      throw new Error(`Failed to fetch real data for ${originalSymbol} (mapped as ${binanceSymbol}). Error: ${(err as Error).message}`);
+      lastError = err as Error;
+      logger.error(`Bybit fetch failed: ${(err as Error).message}`);
     }
 
-    if (!klines || klines.length < 200) {
-      throw new Error(`Not enough historical data from Binance to calculate indicators for ${originalSymbol}`);
+    if (klines.length === 0) {
+      throw new Error(
+        `Failed to fetch data for ${originalSymbol} (mapped as ${binanceSymbol}) from all sources. Last error: ${lastError?.message}`
+      );
+    }
+
+    if (klines.length < 200) {
+      throw new Error(`Not enough historical data to calculate indicators for ${originalSymbol} (got ${klines.length} candles, need at least 200)`);
     }
 
     // kline format: [openTime, open, high, low, close, volume, closeTime, ...]
