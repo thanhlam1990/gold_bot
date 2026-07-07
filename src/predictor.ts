@@ -23,9 +23,10 @@ export interface PredictionResult {
 }
 
 export class PricePredictor {
-  private getBinanceSymbol(symbol: string): string {
+  private getBybitSymbol(symbol: string): string {
     const s = symbol.toUpperCase();
-    if (s === 'XAUUSD' || s === 'GOLD' || s === 'XAU') return 'PAXGUSDT';
+    // Gold: Bybit Spot dùng XAUTUSDT (Tether Gold), không phải PAXGUSDT
+    if (s === 'XAUUSD' || s === 'GOLD' || s === 'XAU') return 'XAUTUSDT';
     if (!s.endsWith('USDT') && !s.endsWith('USD')) return `${s}USDT`;
     if (s.endsWith('USD') && !s.endsWith('USDT')) return s.replace('USD', 'USDT');
     return s;
@@ -54,11 +55,11 @@ export class PricePredictor {
    * Fetch real historical data and generate prediction chart
    */
   public async generatePrediction(originalSymbol: string): Promise<PredictionResult> {
-    const binanceSymbol = this.getBinanceSymbol(originalSymbol);
-    logger.info(`Fetching real Klines from Bybit for ${binanceSymbol} (mapped from ${originalSymbol})`);
+    const bybitSymbol = this.getBybitSymbol(originalSymbol);
+    logger.info(`Fetching real Klines from Bybit for ${bybitSymbol} (mapped from ${originalSymbol})`);
 
     // Fetch 500 periods of 4h data for deep analysis (approx 83 days) via Bybit
-    const bybitUrl = `https://api.bybit.com/v5/market/kline?category=spot&symbol=${binanceSymbol}&interval=240&limit=500`;
+    const bybitUrl = `https://api.bybit.com/v5/market/kline?category=spot&symbol=${bybitSymbol}&interval=240&limit=500`;
 
     let klines: any[] = [];
     let lastError: Error | null = null;
@@ -80,7 +81,7 @@ export class PricePredictor {
 
     if (klines.length === 0) {
       throw new Error(
-        `Failed to fetch data for ${originalSymbol} (mapped as ${binanceSymbol}) from all sources. Last error: ${lastError?.message}`
+        `Failed to fetch data for ${originalSymbol} (mapped as ${bybitSymbol}) from Bybit. Last error: ${lastError?.message}`
       );
     }
 
@@ -363,7 +364,8 @@ export class PricePredictor {
     // 13. Asset Regime Classification
     const isGold = originalSymbol.toUpperCase().includes('XAU') || 
                    originalSymbol.toUpperCase().includes('GOLD') || 
-                   originalSymbol.toUpperCase().includes('PAXG');
+                   originalSymbol.toUpperCase().includes('PAXG') ||
+                   originalSymbol.toUpperCase().includes('XAUT');
 
     // 14. Monte Carlo Simulation (T+1 to T+24)
     const numSimulations = 100;

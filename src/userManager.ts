@@ -1,4 +1,5 @@
-import { Pool } from 'pg';
+import fs from 'fs';
+import path from 'path';
 import { logger } from './logger';
 
 export interface VipUser {
@@ -8,127 +9,120 @@ export interface VipUser {
   isActive: boolean;
 }
 
+// Cùng thư mục 'data' với history.json
+const DATA_DIR = 'data';
+const USERS_FILE = path.join(DATA_DIR, 'vip_users.json');
+
 export class UserManager {
-  private pool: Pool;
-  private isConnected: boolean = false;
-
   constructor() {
-    const connectionString = process.env.DATABASE_URL || '';
-
-    this.pool = new Pool({
-      connectionString,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
-
-    this.initDb();
+    this.ensureDataDir();
   }
 
-  private async initDb() {
+  /** Đảm bảo thư mục data/ và file JSON tồn tại */
+  private ensureDataDir(): void {
     try {
-      await this.pool.query(`
-        CREATE TABLE IF NOT EXISTS vip_users (
-          chat_id VARCHAR(255) PRIMARY KEY,
-          username VARCHAR(255),
-          expire_at BIGINT NOT NULL,
-          is_active BOOLEAN NOT NULL DEFAULT TRUE
-        );
-      `);
-      this.isConnected = true;
-      logger.info('Connected to PostgreSQL and verified vip_users table.');
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+        logger.info(`Created data directory: ${DATA_DIR}`);
+      }
+      if (!fs.existsSync(USERS_FILE)) {
+        fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2), 'utf-8');
+        logger.info(`Created users file: ${USERS_FILE}`);
+      }
     } catch (err) {
-      logger.error(`Database initialization failed: ${(err as Error).message}`);
+      logger.error(`Failed to initialize data directory: ${(err as Error).message}`);
+    }
+  }
+
+  /** Đọc toàn bộ danh sách user từ file JSON */
+  private readUsers(): VipUser[] {
+    try {
+      const raw = fs.readFileSync(USERS_FILE, 'utf-8');
+      return JSON.parse(raw) as VipUser[];
+    } catch (err) {
+      logger.error(`Failed to read users file: ${(err as Error).message}`);
+      return [];
+    }
+  }
+
+  /** Ghi danh sách user xuống file JSON */
+  private writeUsers(users: VipUser[]): void {
+    try {
+      fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
+    } catch (err) {
+      logger.error(`Failed to write users file: ${(err as Error).message}`);
     }
   }
 
   public async addVip(chatId: string, days: number, username?: string): Promise<void> {
-    if (!this.isConnected) return;
+    const users = this.readUsers();
     const expireAt = Date.now() + days * 24 * 60 * 60 * 1000;
-    try {
-      await this.pool.query(`
-        INSERT INTO vip_users (chat_id, username, expire_at, is_active)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (chat_id) 
-        DO UPDATE SET expire_at = EXCLUDED.expire_at, is_active = EXCLUDED.is_active, username = EXCLUDED.username;
-      `, [chatId, username || null, expireAt, true]);
-    } catch (err) {
-      logger.error(`Failed to add VIP: ${(err as Error).message}`);
+    const idx = users.findIndex(u => u.chatId === chatId);
+
+    if (idx >= 0) {
+      // Cập nhật nếu đã tồn tại
+      users[idx] = { chatId, username: username || users[idx].username, expireAt, isActive: true };
+      logger.info(`Updated VIP: ${chatId} (${username ?? '-'}), expires in ${days} day(s).`);
+    } else {
+      // Thêm mới
+      users.push({ chatId, username, expireAt, isActive: true });
+      logger.info(`Added VIP: ${chatId} (${username ?? '-'}), expires in ${days} day(s).`);
     }
+
+    this.writeUsers(users);
   }
 
   public async removeVip(chatId: string): Promise<void> {
-    if (!this.isConnected) return;
-    try {
-      await this.pool.query(`
-        UPDATE vip_users SET is_active = false WHERE chat_id = $1;
-      `, [chatId]);
-    } catch (err) {
-      logger.error(`Failed to remove VIP: ${(err as Error).message}`);
+    const users = this.readUsers();
+    const idx = users.findIndex(u => u.chatId === chatId);
+
+    if (idx >= 0) {
+      users[idx].isActive = false;
+      this.writeUsers(users);
+      logger.info(`Deactivated VIP: ${chatId}`);
     }
   }
 
   public async getActiveVips(): Promise<VipUser[]> {
-    if (!this.isConnected) return [];
     const now = Date.now();
-    try {
-      // Auto-deactivate expired first
-      await this.pool.query(`
-        UPDATE vip_users SET is_active = false WHERE is_active = true AND expire_at <= $1;
-      `, [now]);
+    let users = this.readUsers();
 
-      const res = await this.pool.query(`
-        SELECT chat_id, username, expire_at, is_active FROM vip_users WHERE is_active = true;
-      `);
+    // Auto-deactivate expired users
+    let dirty = false;
+    users = users.map(u => {
+      if (u.isActive && u.expireAt <= now) {
+        dirty = true;
+        return { ...u, isActive: false };
+      }
+      return u;
+    });
 
-      return res.rows.map((r: any) => ({
-        chatId: r.chat_id,
-        username: r.username,
-        expireAt: parseInt(r.expire_at),
-        isActive: r.is_active
-      }));
-    } catch (err) {
-      logger.error(`Failed to get active VIPs: ${(err as Error).message}`);
-      return [];
-    }
+    if (dirty) this.writeUsers(users);
+
+    return users.filter(u => u.isActive);
   }
 
   public async getAllUsers(): Promise<VipUser[]> {
-    if (!this.isConnected) return [];
-    try {
-      const res = await this.pool.query(`SELECT chat_id, username, expire_at, is_active FROM vip_users`);
-      return res.rows.map((r: any) => ({
-        chatId: r.chat_id,
-        username: r.username,
-        expireAt: parseInt(r.expire_at),
-        isActive: r.is_active
-      }));
-    } catch (err) {
-      logger.error(`Failed to get all users: ${(err as Error).message}`);
-      return [];
-    }
+    return this.readUsers();
   }
 
   public async isVip(chatId: string): Promise<boolean> {
-    if (!this.isConnected) return false;
-    try {
-      const res = await this.pool.query(`
-        SELECT expire_at, is_active FROM vip_users WHERE chat_id = $1
-      `, [chatId]);
+    const now = Date.now();
+    const users = this.readUsers();
+    const user = users.find(u => u.chatId === chatId);
 
-      if (res.rows.length === 0) return false;
-      const user = res.rows[0];
+    if (!user) return false;
 
-      if (user.is_active && parseInt(user.expire_at) > Date.now()) return true;
+    if (user.isActive && user.expireAt > now) return true;
 
-      if (user.is_active && parseInt(user.expire_at) <= Date.now()) {
-        await this.pool.query(`UPDATE vip_users SET is_active = false WHERE chat_id = $1`, [chatId]);
-      }
-
-      return false;
-    } catch (err) {
-      logger.error(`Failed to check VIP status: ${(err as Error).message}`);
-      return false;
+    // Expired → deactivate
+    if (user.isActive && user.expireAt <= now) {
+      const updated = users.map(u =>
+        u.chatId === chatId ? { ...u, isActive: false } : u
+      );
+      this.writeUsers(updated);
     }
+
+    return false;
   }
 }
