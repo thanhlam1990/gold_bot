@@ -518,18 +518,27 @@ function updateCard(sym, data) {
   priceEl.classList.remove('loading');
   priceEl.textContent = formatPrice(newPrice, sym);
 
-  // Change
-  const chg = parseFloat(data.price24hPcnt || 0) * 100;
+  // Change (handle partial)
+  if (data.price24hPcnt !== undefined) {
+    prices[sym].change = parseFloat(data.price24hPcnt) * 100;
+  }
+  const chg = prices[sym].change || 0;
   const chgStr = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
   const arrow = chg >= 0 ? '▲' : '▼';
   const cls = chg > 0 ? 'change-up' : chg < 0 ? 'change-down' : 'change-neutral';
   changeEl.innerHTML = `<span class="${cls}">${arrow} ${chgStr}</span>`;
-  prices[sym].change = chg;
 
-  // Footer
-  if (highEl) highEl.textContent = formatPrice(data.highPrice24h, sym);
-  if (lowEl)  lowEl.textContent  = formatPrice(data.lowPrice24h, sym);
-  if (volEl)  volEl.textContent  = formatVol(data.volume24h);
+  // Update stored values for footer if present in payload
+  if (data.highPrice24h !== undefined) prices[sym].high = data.highPrice24h;
+  if (data.lowPrice24h !== undefined) prices[sym].low = data.lowPrice24h;
+  // Some endpoints use volume24h, some use turnover24h
+  if (data.volume24h !== undefined) prices[sym].vol = data.volume24h;
+  else if (data.turnover24h !== undefined) prices[sym].vol = data.turnover24h;
+
+  // Render Footer
+  if (highEl) highEl.textContent = formatPrice(prices[sym].high, sym);
+  if (lowEl)  lowEl.textContent  = formatPrice(prices[sym].low, sym);
+  if (volEl)  volEl.textContent  = formatVol(prices[sym].vol);
   if (updEl)  updEl.textContent  = formatTime(data.ts || Date.now());
 
   updateCount++;
