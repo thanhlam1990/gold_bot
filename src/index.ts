@@ -7,9 +7,14 @@ import { UserManager } from "./userManager";
 import { logger, setLogLevel } from "./logger";
 
 import express from "express";
+import * as path from "path";
 const app = express();
 
-app.get("/", (_: any, res: any) => res.send("OK"));
+app.use("/dashboard", express.static(path.join(__dirname, "../dashboard")));
+app.use(express.static(path.join(__dirname, "../dashboard"))); // so assets load if requested from root
+app.get("/", (_: any, res: any) => {
+  res.sendFile(path.join(__dirname, "../dashboard/index.html"));
+});
 
 app.listen(process.env.PORT || 3000);
 // ── Bootstrap ─────────────────────────────────────────────────
