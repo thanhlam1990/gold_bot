@@ -1,18 +1,27 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Crypto Dashboard — Bybit Realtime</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
       --bg-primary: #060b14;
       --bg-card: #0d1624;
       --bg-card2: #111d30;
-      --border: rgba(99,179,237,0.1);
+      --border: rgba(99, 179, 237, 0.1);
       --accent: #3b82f6;
       --accent2: #8b5cf6;
       --green: #10b981;
@@ -20,7 +29,7 @@
       --yellow: #f59e0b;
       --text: #e2e8f0;
       --muted: #64748b;
-      --glow: rgba(59,130,246,0.15);
+      --glow: rgba(59, 130, 246, 0.15);
     }
 
     body {
@@ -37,13 +46,19 @@
       position: fixed;
       inset: 0;
       background:
-        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(59,130,246,0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(139,92,246,0.1) 0%, transparent 60%);
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(59, 130, 246, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(139, 92, 246, 0.1) 0%, transparent 60%);
       pointer-events: none;
       z-index: 0;
     }
 
-    .container { max-width: 1600px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
 
     /* Header */
     header {
@@ -54,26 +69,47 @@
       border-bottom: 1px solid var(--border);
       margin-bottom: 32px;
     }
+
     .logo {
       display: flex;
       align-items: center;
       gap: 12px;
     }
+
     .logo-icon {
-      width: 40px; height: 40px;
+      width: 40px;
+      height: 40px;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 20px;
-      box-shadow: 0 0 20px rgba(59,130,246,0.4);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
     }
-    .logo h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
-    .logo p { font-size: 11px; color: var(--muted); margin-top: 1px; }
 
-    .header-right { display: flex; align-items: center; gap: 16px; }
+    .logo h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .logo p {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
 
     .ws-status {
-      display: flex; align-items: center; gap: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       padding: 6px 14px;
       border-radius: 20px;
       border: 1px solid var(--border);
@@ -81,29 +117,56 @@
       font-size: 12px;
       font-weight: 500;
     }
+
     .ws-dot {
-      width: 8px; height: 8px; border-radius: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
       background: var(--muted);
       transition: background 0.3s;
     }
-    .ws-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
-    .ws-dot.disconnected { background: var(--red); }
-    .ws-dot.connecting { background: var(--yellow); animation: pulse 1s infinite; }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+    .ws-dot.connected {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite;
     }
 
-    .server-time { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .ws-dot.disconnected {
+      background: var(--red);
+    }
+
+    .ws-dot.connecting {
+      background: var(--yellow);
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
+    }
+
+    .server-time {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
 
     /* Stats bar */
     .stats-bar {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 16px;
       margin-bottom: 32px;
     }
+
     .stat-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -111,12 +174,47 @@
       padding: 20px;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
-    .stat-value { font-size: 28px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-    .stat-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-    .stat-list-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .stat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .stat-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
 
     /* Token grid */
     .section-title {
@@ -130,6 +228,7 @@
       align-items: center;
       gap: 8px;
     }
+
     .section-title::after {
       content: '';
       flex: 1;
@@ -154,43 +253,100 @@
       position: relative;
       overflow: hidden;
     }
+
     .token-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       height: 2px;
       background: linear-gradient(90deg, var(--accent), var(--accent2));
       opacity: 0;
       transition: opacity 0.3s;
     }
-    .token-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.4); border-color: rgba(59,130,246,0.3); }
-    .token-card:hover::before { opacity: 1; }
 
-    .token-card.flash-green { animation: flashG 0.6s ease; }
-    .token-card.flash-red { animation: flashR 0.6s ease; }
+    .token-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .token-card:hover::before {
+      opacity: 1;
+    }
+
+    .token-card.flash-green {
+      animation: flashG 0.6s ease;
+    }
+
+    .token-card.flash-red {
+      animation: flashR 0.6s ease;
+    }
 
     @keyframes flashG {
-      0%, 100% { background: var(--bg-card); }
-      30% { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); }
-    }
-    @keyframes flashR {
-      0%, 100% { background: var(--bg-card); }
-      30% { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); }
+
+      0%,
+      100% {
+        background: var(--bg-card);
+      }
+
+      30% {
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.4);
+      }
     }
 
-    .token-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .token-info { display: flex; align-items: center; gap: 10px; }
+    @keyframes flashR {
+
+      0%,
+      100% {
+        background: var(--bg-card);
+      }
+
+      30% {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+    }
+
+    .token-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .token-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .token-icon {
-      width: 38px; height: 38px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--bg-card2), var(--border));
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
       border: 1px solid var(--border);
       color: var(--accent);
     }
-    .token-symbol { font-size: 15px; font-weight: 700; }
-    .token-name { font-size: 11px; color: var(--muted); }
+
+    .token-symbol {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .token-name {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
     .token-badge {
       font-size: 10px;
       padding: 3px 8px;
@@ -198,9 +354,24 @@
       font-weight: 600;
       text-transform: uppercase;
     }
-    .badge-spot { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
-    .badge-futures { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
-    .badge-gold { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+
+    .badge-spot {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .badge-futures {
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .badge-gold {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
 
     .token-price {
       font-size: 26px;
@@ -212,6 +383,7 @@
       display: flex;
       align-items: center;
     }
+
     .token-price.loading {
       background: linear-gradient(90deg, var(--bg-card2) 25%, var(--border) 50%, var(--bg-card2) 75%);
       background-size: 200% 100%;
@@ -220,15 +392,36 @@
       width: 160px;
       height: 32px;
     }
-    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+    @keyframes shimmer {
+      0% {
+        background-position: -200% 0;
+      }
+
+      100% {
+        background-position: 200% 0;
+      }
+    }
 
     .token-change {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 13px; font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
     }
-    .change-up { color: var(--green); }
-    .change-down { color: var(--red); }
-    .change-neutral { color: var(--muted); }
+
+    .change-up {
+      color: var(--green);
+    }
+
+    .change-down {
+      color: var(--red);
+    }
+
+    .change-neutral {
+      color: var(--muted);
+    }
 
     .token-footer {
       display: grid;
@@ -238,9 +431,21 @@
       padding-top: 14px;
       border-top: 1px solid var(--border);
     }
-    .token-footer-item { font-size: 11px; }
-    .footer-label { color: var(--muted); margin-bottom: 2px; }
-    .footer-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 12px; }
+
+    .token-footer-item {
+      font-size: 11px;
+    }
+
+    .footer-label {
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .footer-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 12px;
+    }
 
     /* Ticker tape */
     .ticker-wrap {
@@ -252,24 +457,43 @@
       overflow: hidden;
       position: relative;
     }
+
     .ticker-tape {
       display: flex;
       gap: 48px;
       white-space: nowrap;
       animation: ticker 40s linear infinite;
     }
-    .ticker-tape:hover { animation-play-state: paused; }
+
+    .ticker-tape:hover {
+      animation-play-state: paused;
+    }
+
     .ticker-item {
       font-size: 12px;
       font-family: 'JetBrains Mono', monospace;
-      display: flex; align-items: center; gap: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .ticker-sym { color: var(--muted); font-weight: 600; }
-    .ticker-price { font-weight: 500; }
+
+    .ticker-sym {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .ticker-price {
+      font-weight: 500;
+    }
 
     @keyframes ticker {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
+      0% {
+        transform: translateX(0);
+      }
+
+      100% {
+        transform: translateX(-50%);
+      }
     }
 
     /* Footer */
@@ -286,19 +510,32 @@
     /* Debug panel */
     .debug-panel {
       background: #0a0f1a;
-      border: 1px solid rgba(239,68,68,0.2);
+      border: 1px solid rgba(239, 68, 68, 0.2);
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 24px;
       display: none;
     }
-    .debug-panel.visible { display: block; }
-    .debug-toggle {
-      background: none; border: 1px solid var(--border);
-      color: var(--muted); padding: 4px 10px; border-radius: 6px;
-      font-size: 11px; cursor: pointer;
+
+    .debug-panel.visible {
+      display: block;
     }
-    .debug-toggle:hover { color: var(--text); border-color: var(--accent); }
+
+    .debug-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .debug-toggle:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
     #debugLog {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
@@ -307,127 +544,154 @@
       overflow-y: auto;
       line-height: 1.8;
     }
-    #debugLog .log-err { color: #f87171; }
-    #debugLog .log-ok  { color: #34d399; }
-    #debugLog .log-info{ color: #60a5fa; }
+
+    #debugLog .log-err {
+      color: #f87171;
+    }
+
+    #debugLog .log-ok {
+      color: #34d399;
+    }
+
+    #debugLog .log-info {
+      color: #60a5fa;
+    }
 
     /* Responsive */
     @media (max-width: 768px) {
-      .stats-bar { grid-template-columns: repeat(2, 1fr); }
-      .token-grid { grid-template-columns: 1fr; }
-      header { flex-direction: column; gap: 16px; }
+      .stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .token-grid {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        flex-direction: column;
+        gap: 16px;
+      }
     }
   </style>
 </head>
+
 <body>
-<div class="container">
-  <header>
-    <div class="logo">
-      <div class="logo-icon">₿</div>
-      <div>
-        <h1>Crypto Dashboard</h1>
-        <p>Powered by Bybit WebSocket — Realtime</p>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">₿</div>
+        <div>
+          <h1>Crypto Dashboard</h1>
+          <p>Powered by Bybit WebSocket — Realtime</p>
+        </div>
       </div>
-    </div>
-    <div class="header-right">
-      <div class="server-time" id="serverTime">--:--:--</div>
-      <div class="ws-status">
-        <div class="ws-dot connecting" id="wsDot"></div>
-        <span id="wsLabel">Connecting...</span>
+      <div class="header-right">
+        <div class="server-time" id="serverTime">--:--:--</div>
+        <div class="ws-status">
+          <div class="ws-dot connecting" id="wsDot"></div>
+          <span id="wsLabel">Connecting...</span>
+        </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Stats bar -->
-  <div class="stats-bar">
-    <div class="stat-card">
-      <div class="stat-label">Tokens Active</div>
-      <div class="stat-value" id="statTokens" style="color:var(--accent)">0</div>
-      <div class="stat-sub">Subscribed symbols</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Top 3 Gainers</div>
-      <div id="statGainerList" class="stat-list">
-        <div style="font-size:12px; color:var(--muted)">—</div>
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Tokens Active</div>
+        <div class="stat-value" id="statTokens" style="color:var(--accent)">0</div>
+        <div class="stat-sub">Subscribed symbols</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Top 3 Gainers</div>
+        <div id="statGainerList" class="stat-list">
+          <div style="font-size:12px; color:var(--muted)">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Top 3 Losers</div>
+        <div id="statLoserList" class="stat-list">
+          <div style="font-size:12px; color:var(--muted)">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Top 3 Volume</div>
+        <div id="statVolumeList" class="stat-list">
+          <div style="font-size:12px; color:var(--muted)">—</div>
+        </div>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Top 3 Losers</div>
-      <div id="statLoserList" class="stat-list">
-        <div style="font-size:12px; color:var(--muted)">—</div>
+
+    <!-- Ticker tape -->
+    <div class="ticker-wrap">
+      <div class="ticker-tape" id="tickerTape">
+        <span class="ticker-item"><span class="ticker-sym">⌛</span><span class="ticker-price">Đang kết nối Bybit
+            WebSocket...</span></span>
       </div>
     </div>
+
+    <!-- Token cards -->
+    <div class="section-title">📊 Top tokens</div>
+    <div class="token-grid" id="tokenGrid"></div>
+
+    <!-- Debug panel -->
+    <div class="debug-panel" id="debugPanel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:12px;font-weight:600;color:var(--yellow)">🐞 Debug Console</span>
+        <button class="debug-toggle" onclick="document.getElementById('debugLog').innerHTML=''"
+          id="clearBtn">Clear</button>
+      </div>
+      <div id="debugLog"></div>
+    </div>
+
+    <footer>
+      <span>© 2026 Gold Bot Dashboard — Bybit WebSocket API</span>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="debug-toggle" onclick="toggleDebug()">🐞 Debug</button>
+        <span id="lastUpdateTime">Chưa có dữ liệu</span>
+      </div>
+    </footer>
   </div>
 
-  <!-- Ticker tape -->
-  <div class="ticker-wrap">
-    <div class="ticker-tape" id="tickerTape">
-      <span class="ticker-item"><span class="ticker-sym">⌛</span><span class="ticker-price">Đang kết nối Bybit WebSocket...</span></span>
-    </div>
-  </div>
+  <script>
+    // ─── CONFIG ───────────────────────────────────────────────────
+    const TOKENS = [
+      { symbol: 'XAUUSDT', name: 'Gold / Vàng', icon: '🥇', type: 'gold' },
+      { symbol: 'BTCUSDT', name: 'Bitcoin', icon: '₿', type: 'spot' },
+      { symbol: 'ETHUSDT', name: 'Ethereum', icon: 'Ξ', type: 'spot' },
+      { symbol: 'BNBUSDT', name: 'BNB', icon: 'B', type: 'spot' },
+      { symbol: 'SOLUSDT', name: 'Solana', icon: '◎', type: 'spot' },
+      { symbol: 'APTUSDT', name: 'Aptos', icon: 'A', type: 'spot' },
+      { symbol: 'ARBUSDT', name: 'Arbitrum', icon: 'A', type: 'spot' },
+      { symbol: 'AVAXUSDT', name: 'Avalanche', icon: 'A', type: 'spot' },
+      { symbol: 'LINKUSDT', name: 'Chainlink', icon: '⬡', type: 'spot' },
+      { symbol: 'DOTUSDT', name: 'Polkadot', icon: '●', type: 'spot' },
+    ];
 
-  <!-- Token cards -->
-  <div class="section-title">📊 Giá Realtime</div>
-  <div class="token-grid" id="tokenGrid"></div>
+    const WS_URL_SPOT = 'wss://stream.bybit.com/v5/public/spot';
+    const WS_URL_LINEAR = 'wss://stream.bybit.com/v5/public/linear';
 
-  <!-- Debug panel -->
-  <div class="debug-panel" id="debugPanel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-size:12px;font-weight:600;color:var(--yellow)">🐞 Debug Console</span>
-      <button class="debug-toggle" onclick="document.getElementById('debugLog').innerHTML=''" id="clearBtn">Clear</button>
-    </div>
-    <div id="debugLog"></div>
-  </div>
+    // ─── STATE ────────────────────────────────────────────────────
+    const prices = {};
+    let wsSpot = null;
+    let wsLinear = null;
+    let updateCount = 0;
+    let reconnectDelay = 2000;
 
-  <footer>
-    <span>© 2026 Gold Bot Dashboard — Bybit WebSocket API</span>
-    <div style="display:flex;align-items:center;gap:12px">
-      <button class="debug-toggle" onclick="toggleDebug()">🐞 Debug</button>
-      <span id="lastUpdateTime">Chưa có dữ liệu</span>
-    </div>
-  </footer>
-</div>
-
-<script>
-// ─── CONFIG ───────────────────────────────────────────────────
-const TOKENS = [
-  { symbol: 'XAUUSDT',  name: 'Gold / Vàng',   icon: '🥇', type: 'gold' },
-  { symbol: 'BTCUSDT',  name: 'Bitcoin',       icon: '₿',  type: 'spot' },
-  { symbol: 'ETHUSDT',  name: 'Ethereum',      icon: 'Ξ',  type: 'spot' },
-  { symbol: 'BNBUSDT',  name: 'BNB',           icon: 'B',  type: 'spot' },
-  { symbol: 'SOLUSDT',  name: 'Solana',        icon: '◎',  type: 'spot' },
-  { symbol: 'APTUSDT',  name: 'Aptos',         icon: 'A',  type: 'spot' },
-  { symbol: 'ARBUSDT',  name: 'Arbitrum',      icon: 'A',  type: 'spot' },
-  { symbol: 'AVAXUSDT', name: 'Avalanche',     icon: 'A',  type: 'spot' },
-  { symbol: 'LINKUSDT', name: 'Chainlink',     icon: '⬡',  type: 'spot' },
-  { symbol: 'DOTUSDT',  name: 'Polkadot',      icon: '●',  type: 'spot' },
-];
-
-const WS_URL_SPOT = 'wss://stream.bybit.com/v5/public/spot';
-const WS_URL_LINEAR = 'wss://stream.bybit.com/v5/public/linear';
-
-// ─── STATE ────────────────────────────────────────────────────
-const prices = {};
-let wsSpot = null;
-let wsLinear = null;
-let updateCount = 0;
-let reconnectDelay = 2000;
-
-// ─── INIT CARDS ───────────────────────────────────────────────
-function initCards() {
-  const grid = document.getElementById('tokenGrid');
-  grid.innerHTML = '';
-  TOKENS.forEach(t => {
-    prices[t.symbol] = { price: null, change: null, high: null, low: null, vol: null, prevClose: null };
-    const card = document.createElement('div');
-    card.className = 'token-card';
-    card.id = `card-${t.symbol}`;
-    card.innerHTML = `
+    // ─── INIT CARDS ───────────────────────────────────────────────
+    function initCards() {
+      const grid = document.getElementById('tokenGrid');
+      grid.innerHTML = '';
+      TOKENS.forEach(t => {
+        prices[t.symbol] = { price: null, change: null, high: null, low: null, vol: null, prevClose: null };
+        const card = document.createElement('div');
+        card.className = 'token-card';
+        card.id = `card-${t.symbol}`;
+        card.innerHTML = `
       <div class="token-header">
         <div class="token-info">
           <div class="token-icon">${t.icon}</div>
           <div>
-            <div class="token-symbol">${t.symbol.replace('USDT','')}</div>
+            <div class="token-symbol">${t.symbol.replace('USDT', '')}</div>
             <div class="token-name">${t.name}</div>
           </div>
         </div>
@@ -456,299 +720,312 @@ function initCards() {
         </div>
       </div>
     `;
-    grid.appendChild(card);
-  });
-  document.getElementById('statTokens').textContent = TOKENS.length;
-}
+        grid.appendChild(card);
+      });
+      document.getElementById('statTokens').textContent = TOKENS.length;
+    }
 
-// ─── FORMAT ───────────────────────────────────────────────────
-function formatPrice(p, sym) {
-  if (p === null || p === undefined) return '—';
-  const n = parseFloat(p);
-  if (sym && (sym.includes('BTC') || sym.includes('ETH') || sym.includes('XAU'))) return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  if (n >= 1000) return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-  if (n >= 1)    return '$' + n.toFixed(4);
-  return '$' + n.toFixed(6);
-}
-function formatVol(v) {
-  if (!v) return '—';
-  const n = parseFloat(v);
-  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
-  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
-  if (n >= 1e3) return (n/1e3).toFixed(2) + 'K';
-  return n.toFixed(2);
-}
-function formatTime(ts) {
-  if (!ts) return '—';
-  const d = new Date(parseInt(ts));
-  return d.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-}
+    // ─── FORMAT ───────────────────────────────────────────────────
+    function formatPrice(p, sym) {
+      if (p === null || p === undefined) return '—';
+      const n = parseFloat(p);
+      if (sym && (sym.includes('BTC') || sym.includes('ETH') || sym.includes('XAU'))) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (n >= 1000) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (n >= 1) return '$' + n.toFixed(4);
+      return '$' + n.toFixed(6);
+    }
+    function formatVol(v) {
+      if (!v) return '—';
+      const n = parseFloat(v);
+      if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+      if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+      if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+      return n.toFixed(2);
+    }
+    function formatTime(ts) {
+      if (!ts) return '—';
+      const d = new Date(parseInt(ts));
+      return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
 
-// ─── UPDATE CARD ──────────────────────────────────────────────
-function updateCard(sym, data) {
-  const priceEl   = document.getElementById(`price-${sym}`);
-  const changeEl  = document.getElementById(`change-${sym}`);
-  const highEl    = document.getElementById(`high-${sym}`);
-  const lowEl     = document.getElementById(`low-${sym}`);
-  const volEl     = document.getElementById(`vol-${sym}`);
-  const updEl     = document.getElementById(`upd-${sym}`);
-  const card      = document.getElementById(`card-${sym}`);
+    // ─── UPDATE CARD ──────────────────────────────────────────────
+    function updateCard(sym, data) {
+      const priceEl = document.getElementById(`price-${sym}`);
+      const changeEl = document.getElementById(`change-${sym}`);
+      const highEl = document.getElementById(`high-${sym}`);
+      const lowEl = document.getElementById(`low-${sym}`);
+      const volEl = document.getElementById(`vol-${sym}`);
+      const updEl = document.getElementById(`upd-${sym}`);
+      const card = document.getElementById(`card-${sym}`);
 
-  if (!priceEl) return;
+      if (!priceEl) return;
 
-  const oldPrice = prices[sym].price;
+      const oldPrice = prices[sym].price;
 
-  // Handle partial updates (delta)
-  let newPrice = oldPrice;
-  if (data.lastPrice !== undefined) newPrice = parseFloat(data.lastPrice);
-  else if (data.price !== undefined) newPrice = parseFloat(data.price);
+      // Handle partial updates (delta)
+      let newPrice = oldPrice;
+      if (data.lastPrice !== undefined) newPrice = parseFloat(data.lastPrice);
+      else if (data.price !== undefined) newPrice = parseFloat(data.price);
 
-  if (newPrice === null || isNaN(newPrice)) return; // No price data yet
+      if (newPrice === null || isNaN(newPrice)) return; // No price data yet
 
-  // Flash animation
-  if (oldPrice !== null && newPrice !== oldPrice) {
-    card.classList.remove('flash-green', 'flash-red');
-    void card.offsetWidth; // reflow
-    card.classList.add(newPrice > oldPrice ? 'flash-green' : 'flash-red');
-  }
+      // Flash animation
+      if (oldPrice !== null && newPrice !== oldPrice) {
+        card.classList.remove('flash-green', 'flash-red');
+        void card.offsetWidth; // reflow
+        card.classList.add(newPrice > oldPrice ? 'flash-green' : 'flash-red');
+      }
 
-  prices[sym].price = newPrice;
+      prices[sym].price = newPrice;
 
-  // Price
-  priceEl.classList.remove('loading');
-  priceEl.textContent = formatPrice(newPrice, sym);
+      // Price
+      priceEl.classList.remove('loading');
+      priceEl.textContent = formatPrice(newPrice, sym);
 
-  // Change (handle partial)
-  if (data.price24hPcnt !== undefined) {
-    prices[sym].change = parseFloat(data.price24hPcnt) * 100;
-  }
-  const chg = prices[sym].change || 0;
-  const chgStr = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
-  const arrow = chg >= 0 ? '▲' : '▼';
-  const cls = chg > 0 ? 'change-up' : chg < 0 ? 'change-down' : 'change-neutral';
-  changeEl.innerHTML = `<span class="${cls}">${arrow} ${chgStr}</span>`;
+      // Change (handle partial)
+      if (data.price24hPcnt !== undefined) {
+        prices[sym].change = parseFloat(data.price24hPcnt) * 100;
+      }
+      const chg = prices[sym].change || 0;
+      const chgStr = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+      const arrow = chg >= 0 ? '▲' : '▼';
+      const cls = chg > 0 ? 'change-up' : chg < 0 ? 'change-down' : 'change-neutral';
+      changeEl.innerHTML = `<span class="${cls}">${arrow} ${chgStr}</span>`;
 
-  // Update stored values for footer if present in payload
-  if (data.highPrice24h !== undefined) prices[sym].high = data.highPrice24h;
-  if (data.lowPrice24h !== undefined) prices[sym].low = data.lowPrice24h;
-  // Some endpoints use volume24h, some use turnover24h
-  if (data.volume24h !== undefined) prices[sym].vol = data.volume24h;
-  else if (data.turnover24h !== undefined) prices[sym].vol = data.turnover24h;
+      // Update stored values for footer if present in payload
+      if (data.highPrice24h !== undefined) prices[sym].high = data.highPrice24h;
+      if (data.lowPrice24h !== undefined) prices[sym].low = data.lowPrice24h;
+      // Some endpoints use volume24h, some use turnover24h
+      if (data.volume24h !== undefined) prices[sym].vol = data.volume24h;
+      else if (data.turnover24h !== undefined) prices[sym].vol = data.turnover24h;
 
-  // Render Footer
-  if (highEl) highEl.textContent = formatPrice(prices[sym].high, sym);
-  if (lowEl)  lowEl.textContent  = formatPrice(prices[sym].low, sym);
-  if (volEl)  volEl.textContent  = formatVol(prices[sym].vol);
-  if (updEl)  updEl.textContent  = formatTime(data.ts || Date.now());
+      // Render Footer
+      if (highEl) highEl.textContent = formatPrice(prices[sym].high, sym);
+      if (lowEl) lowEl.textContent = formatPrice(prices[sym].low, sym);
+      if (volEl) volEl.textContent = formatVol(prices[sym].vol);
+      if (updEl) updEl.textContent = formatTime(data.ts || Date.now());
 
-  updateCount++;
-  document.getElementById('lastUpdateTime').textContent = 'Cập nhật: ' + new Date().toLocaleTimeString('vi-VN');
+      updateCount++;
+      document.getElementById('lastUpdateTime').textContent = 'Cập nhật: ' + new Date().toLocaleTimeString('vi-VN');
 
-  updateStats();
-  updateTicker();
-}
+      updateStats();
+      updateTicker();
+    }
 
-// ─── STATS ────────────────────────────────────────────────────
-function updateStats() {
-  const activeTokens = TOKENS.filter(t => prices[t.symbol].change !== null);
-  if (activeTokens.length === 0) return;
+    // ─── STATS ────────────────────────────────────────────────────
+    function updateStats() {
+      const activeTokens = TOKENS.filter(t => prices[t.symbol].change !== null);
+      if (activeTokens.length === 0) return;
 
-  const sorted = [...activeTokens].sort((a, b) => prices[b.symbol].change - prices[a.symbol].change);
-  
-  const gainers = sorted.slice(0, 3).filter(t => prices[t.symbol].change > 0);
-  const losers = [...sorted].reverse().slice(0, 3).filter(t => prices[t.symbol].change < 0);
+      const sorted = [...activeTokens].sort((a, b) => prices[b.symbol].change - prices[a.symbol].change);
 
-  const gainerHtml = gainers.length > 0 ? gainers.map(t => {
-    const chg = prices[t.symbol].change;
-    return `<div class="stat-list-item">
-      <span>${t.symbol.replace('USDT','')}</span>
+      const gainers = sorted.slice(0, 3).filter(t => prices[t.symbol].change > 0);
+      const losers = [...sorted].reverse().slice(0, 3).filter(t => prices[t.symbol].change < 0);
+
+      const sortedVol = [...activeTokens].sort((a, b) => (parseFloat(prices[b.symbol].vol) || 0) - (parseFloat(prices[a.symbol].vol) || 0));
+      const topVolumes = sortedVol.slice(0, 3).filter(t => parseFloat(prices[t.symbol].vol) > 0);
+
+      const gainerHtml = gainers.length > 0 ? gainers.map(t => {
+        const chg = prices[t.symbol].change;
+        return `<div class="stat-list-item">
+      <span>${t.symbol.replace('USDT', '')}</span>
       <span style="color:var(--green)">+${chg.toFixed(2)}%</span>
     </div>`;
-  }).join('') : '<div style="font-size:12px; color:var(--muted)">Không có token tăng</div>';
-  
-  const loserHtml = losers.length > 0 ? losers.map(t => {
-    const chg = prices[t.symbol].change;
-    return `<div class="stat-list-item">
-      <span>${t.symbol.replace('USDT','')}</span>
+      }).join('') : '<div style="font-size:12px; color:var(--muted)">Không có token tăng</div>';
+
+      const loserHtml = losers.length > 0 ? losers.map(t => {
+        const chg = prices[t.symbol].change;
+        return `<div class="stat-list-item">
+      <span>${t.symbol.replace('USDT', '')}</span>
       <span style="color:var(--red)">${chg.toFixed(2)}%</span>
     </div>`;
-  }).join('') : '<div style="font-size:12px; color:var(--muted)">Không có token giảm</div>';
+      }).join('') : '<div style="font-size:12px; color:var(--muted)">Không có token giảm</div>';
 
-  document.getElementById('statGainerList').innerHTML = gainerHtml;
-  document.getElementById('statLoserList').innerHTML = loserHtml;
-}
+      const volHtml = topVolumes.length > 0 ? topVolumes.map(t => {
+        const volStr = formatVol(prices[t.symbol].vol);
+        return `<div class="stat-list-item">
+      <span>${t.symbol.replace('USDT', '')}</span>
+      <span style="color:var(--accent2)">${volStr}</span>
+    </div>`;
+      }).join('') : '<div style="font-size:12px; color:var(--muted)">—</div>';
 
-// ─── TICKER TAPE ──────────────────────────────────────────────
-function updateTicker() {
-  const items = TOKENS
-    .filter(t => prices[t.symbol].price !== null)
-    .map(t => {
-      const p = prices[t.symbol];
-      const chg = p.change;
-      const col = chg > 0 ? '#10b981' : chg < 0 ? '#ef4444' : '#64748b';
-      const sym = t.symbol.replace('USDT','');
-      return `<span class="ticker-item">
+      document.getElementById('statGainerList').innerHTML = gainerHtml;
+      document.getElementById('statLoserList').innerHTML = loserHtml;
+      document.getElementById('statVolumeList').innerHTML = volHtml;
+    }
+
+    // ─── TICKER TAPE ──────────────────────────────────────────────
+    function updateTicker() {
+      const items = TOKENS
+        .filter(t => prices[t.symbol].price !== null)
+        .map(t => {
+          const p = prices[t.symbol];
+          const chg = p.change;
+          const col = chg > 0 ? '#10b981' : chg < 0 ? '#ef4444' : '#64748b';
+          const sym = t.symbol.replace('USDT', '');
+          return `<span class="ticker-item">
         <span class="ticker-sym">${sym}</span>
         <span class="ticker-price" style="color:${col}">${formatPrice(p.price, t.symbol)}</span>
         <span style="color:${col};font-size:11px">${chg >= 0 ? '▲' : '▼'}${Math.abs(chg).toFixed(2)}%</span>
       </span>`;
-    }).join('');
+        }).join('');
 
-  if (!items) return;
-  const tape = document.getElementById('tickerTape');
-  tape.innerHTML = items + items; // duplicate for seamless loop
-}
+      if (!items) return;
+      const tape = document.getElementById('tickerTape');
+      tape.innerHTML = items + items; // duplicate for seamless loop
+    }
 
-// ─── DEBUG ────────────────────────────────────────────────────
-function dbg(msg, type = 'info') {
-  console.log('[Dashboard]', msg);
-  const log = document.getElementById('debugLog');
-  if (!log) return;
-  const now = new Date().toLocaleTimeString('vi-VN');
-  const cls = type === 'err' ? 'log-err' : type === 'ok' ? 'log-ok' : 'log-info';
-  log.innerHTML += `<div class="${cls}">[${now}] ${msg}</div>`;
-  log.scrollTop = log.scrollHeight;
-}
-function toggleDebug() {
-  document.getElementById('debugPanel').classList.toggle('visible');
-}
+    // ─── DEBUG ────────────────────────────────────────────────────
+    function dbg(msg, type = 'info') {
+      console.log('[Dashboard]', msg);
+      const log = document.getElementById('debugLog');
+      if (!log) return;
+      const now = new Date().toLocaleTimeString('vi-VN');
+      const cls = type === 'err' ? 'log-err' : type === 'ok' ? 'log-ok' : 'log-info';
+      log.innerHTML += `<div class="${cls}">[${now}] ${msg}</div>`;
+      log.scrollTop = log.scrollHeight;
+    }
+    function toggleDebug() {
+      document.getElementById('debugPanel').classList.toggle('visible');
+    }
 
-// ─── REST FALLBACK ────────────────────────────────────────────
-// Load snapshot prices via REST first, then WS keeps it live
-async function loadRestSnapshot() {
-  try {
-    dbg('Fetching REST snapshot from Bybit...');
-    const syms = TOKENS.map(t => t.symbol);
-    const urls = [
-      'https://api.bybit.com/v5/market/tickers?category=spot',
-      'https://api.bybit.com/v5/market/tickers?category=linear'
-    ];
-    let loaded = 0;
-    
-    for (const url of urls) {
+    // ─── REST FALLBACK ────────────────────────────────────────────
+    // Load snapshot prices via REST first, then WS keeps it live
+    async function loadRestSnapshot() {
       try {
-        const res = await fetch(url);
-        if (!res.ok) continue;
-        const json = await res.json();
-        if (json.retCode !== 0) continue;
-        const list = json.result.list || [];
-        for (const item of list) {
-          if (syms.includes(item.symbol)) {
-            updateCard(item.symbol, {
-              lastPrice:     item.lastPrice,
-              price24hPcnt:  item.price24hPcnt,
-              highPrice24h:  item.highPrice24h,
-              lowPrice24h:   item.lowPrice24h,
-              volume24h:     item.volume24h,
-              turnover24h:   item.turnover24h,
-              ts:            Date.now()
-            });
-            loaded++;
+        dbg('Fetching REST snapshot from Bybit...');
+        const syms = TOKENS.map(t => t.symbol);
+        const urls = [
+          'https://api.bybit.com/v5/market/tickers?category=spot',
+          'https://api.bybit.com/v5/market/tickers?category=linear'
+        ];
+        let loaded = 0;
+
+        for (const url of urls) {
+          try {
+            const res = await fetch(url);
+            if (!res.ok) continue;
+            const json = await res.json();
+            if (json.retCode !== 0) continue;
+            const list = json.result.list || [];
+            for (const item of list) {
+              if (syms.includes(item.symbol)) {
+                updateCard(item.symbol, {
+                  lastPrice: item.lastPrice,
+                  price24hPcnt: item.price24hPcnt,
+                  highPrice24h: item.highPrice24h,
+                  lowPrice24h: item.lowPrice24h,
+                  volume24h: item.volume24h,
+                  turnover24h: item.turnover24h,
+                  ts: Date.now()
+                });
+                loaded++;
+              }
+            }
+          } catch (e) {
+            dbg('REST partial fail: ' + e.message, 'err');
           }
         }
+        dbg(`REST snapshot: loaded ${loaded} symbols`, 'ok');
       } catch (e) {
-        dbg('REST partial fail: ' + e.message, 'err');
+        dbg('REST snapshot failed: ' + e.message, 'err');
       }
     }
-    dbg(`REST snapshot: loaded ${loaded} symbols`, 'ok');
-  } catch(e) {
-    dbg('REST snapshot failed: ' + e.message, 'err');
-  }
-}
 
-// ─── WEBSOCKET ────────────────────────────────────────────────
-function setWsStatus(status, detail) {
-  const dot   = document.getElementById('wsDot');
-  const label = document.getElementById('wsLabel');
-  dot.className = 'ws-dot ' + status;
-  const map = { connected: 'Connected ✓', disconnected: 'Disconnected', connecting: 'Connecting...' };
-  label.textContent = map[status] || status;
-  if (detail) dbg('WS ' + status + ': ' + detail, status === 'connected' ? 'ok' : status === 'disconnected' ? 'err' : 'info');
-}
+    // ─── WEBSOCKET ────────────────────────────────────────────────
+    function setWsStatus(status, detail) {
+      const dot = document.getElementById('wsDot');
+      const label = document.getElementById('wsLabel');
+      dot.className = 'ws-dot ' + status;
+      const map = { connected: 'Connected ✓', disconnected: 'Disconnected', connecting: 'Connecting...' };
+      label.textContent = map[status] || status;
+      if (detail) dbg('WS ' + status + ': ' + detail, status === 'connected' ? 'ok' : status === 'disconnected' ? 'err' : 'info');
+    }
 
-function connect() {
-  if (wsSpot) { try { wsSpot.close(); } catch(e){} }
-  if (wsLinear) { try { wsLinear.close(); } catch(e){} }
-  setWsStatus('connecting');
+    function connect() {
+      if (wsSpot) { try { wsSpot.close(); } catch (e) { } }
+      if (wsLinear) { try { wsLinear.close(); } catch (e) { } }
+      setWsStatus('connecting');
 
-  createWs('spot', WS_URL_SPOT, TOKENS.filter(t => t.type !== 'gold'));
-  createWs('linear', WS_URL_LINEAR, TOKENS.filter(t => t.type === 'gold'));
-}
+      createWs('spot', WS_URL_SPOT, TOKENS.filter(t => t.type !== 'gold'));
+      createWs('linear', WS_URL_LINEAR, TOKENS.filter(t => t.type === 'gold'));
+    }
 
-function createWs(type, url, tokens) {
-  if (tokens.length === 0) return;
-  
-  let ws;
-  try {
-    ws = new WebSocket(url);
-    if (type === 'spot') wsSpot = ws;
-    else wsLinear = ws;
-  } catch(e) {
-    dbg(`[${type}] WebSocket init failed: ` + e.message, 'err');
-    return;
-  }
+    function createWs(type, url, tokens) {
+      if (tokens.length === 0) return;
 
-  let heartbeat = null;
-
-  ws.onopen = () => {
-    setWsStatus('connected', url);
-    reconnectDelay = 2000;
-    const args = tokens.map(t => `tickers.${t.symbol}`);
-    ws.send(JSON.stringify({ op: 'subscribe', args }));
-    dbg(`[${type}] Subscribed to ` + args.length + ' tickers', 'ok');
-
-    heartbeat = setInterval(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ op: 'ping' }));
-      }
-    }, 20000);
-  };
-
-  ws.onmessage = (evt) => {
-    try {
-      const msg = JSON.parse(evt.data);
-      if (msg.op === 'pong') { /* dbg(`[${type}] Pong received`); */ return; }
-      if (msg.op === 'subscribe') {
-        dbg(`[${type}] Subscribe ack: ` + JSON.stringify(msg), msg.success ? 'ok' : 'err');
+      let ws;
+      try {
+        ws = new WebSocket(url);
+        if (type === 'spot') wsSpot = ws;
+        else wsLinear = ws;
+      } catch (e) {
+        dbg(`[${type}] WebSocket init failed: ` + e.message, 'err');
         return;
       }
-      if (msg.topic && msg.topic.startsWith('tickers.') && msg.data) {
-        const sym = msg.topic.replace('tickers.', '');
-        updateCard(sym, msg.data);
-      }
-    } catch(e) { dbg(`[${type}] Parse error: ` + e.message, 'err'); }
-  };
 
-  ws.onclose = (evt) => {
-    if (heartbeat) { clearInterval(heartbeat); heartbeat = null; }
-    setWsStatus('disconnected', `[${type}] code=${evt.code} reason=${evt.reason||'none'}`);
-    setTimeout(() => {
-      reconnectDelay = Math.min(reconnectDelay * 1.5, 30000);
-      dbg(`[${type}] Reconnecting in ${reconnectDelay}ms...`);
-      createWs(type, url, tokens);
-    }, reconnectDelay);
-  };
+      let heartbeat = null;
 
-  ws.onerror = (e) => {
-    dbg(`[${type}] WebSocket error — check console & network`, 'err');
-  };
-}
+      ws.onopen = () => {
+        setWsStatus('connected', url);
+        reconnectDelay = 2000;
+        const args = tokens.map(t => `tickers.${t.symbol}`);
+        ws.send(JSON.stringify({ op: 'subscribe', args }));
+        dbg(`[${type}] Subscribed to ` + args.length + ' tickers', 'ok');
 
-// ─── CLOCK ────────────────────────────────────────────────────
-function startClock() {
-  const el = document.getElementById('serverTime');
-  setInterval(() => {
-    el.textContent = new Date().toLocaleTimeString('vi-VN', {
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
-  }, 1000);
-}
+        heartbeat = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ op: 'ping' }));
+          }
+        }, 20000);
+      };
 
-// ─── BOOT ─────────────────────────────────────────────────────
-initCards();
-startClock();
-loadRestSnapshot();   // load prices immediately via REST
-connect();            // then keep live via WebSocket
-</script>
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.op === 'pong') { /* dbg(`[${type}] Pong received`); */ return; }
+          if (msg.op === 'subscribe') {
+            dbg(`[${type}] Subscribe ack: ` + JSON.stringify(msg), msg.success ? 'ok' : 'err');
+            return;
+          }
+          if (msg.topic && msg.topic.startsWith('tickers.') && msg.data) {
+            const sym = msg.topic.replace('tickers.', '');
+            updateCard(sym, msg.data);
+          }
+        } catch (e) { dbg(`[${type}] Parse error: ` + e.message, 'err'); }
+      };
+
+      ws.onclose = (evt) => {
+        if (heartbeat) { clearInterval(heartbeat); heartbeat = null; }
+        setWsStatus('disconnected', `[${type}] code=${evt.code} reason=${evt.reason || 'none'}`);
+        setTimeout(() => {
+          reconnectDelay = Math.min(reconnectDelay * 1.5, 30000);
+          dbg(`[${type}] Reconnecting in ${reconnectDelay}ms...`);
+          createWs(type, url, tokens);
+        }, reconnectDelay);
+      };
+
+      ws.onerror = (e) => {
+        dbg(`[${type}] WebSocket error — check console & network`, 'err');
+      };
+    }
+
+    // ─── CLOCK ────────────────────────────────────────────────────
+    function startClock() {
+      const el = document.getElementById('serverTime');
+      setInterval(() => {
+        el.textContent = new Date().toLocaleTimeString('vi-VN', {
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+      }, 1000);
+    }
+
+    // ─── BOOT ─────────────────────────────────────────────────────
+    initCards();
+    startClock();
+    loadRestSnapshot();   // load prices immediately via REST
+    connect();            // then keep live via WebSocket
+  </script>
 </body>
+
 </html>
