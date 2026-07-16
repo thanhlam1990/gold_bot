@@ -17,7 +17,6 @@
       padding: 0;
     }
 
-    /* ─── DARK MODE (Mặc định) ────────────────────────────────── */
     :root {
       --bg-primary: #060b14;
       --bg-card: #0d1624;
@@ -31,30 +30,6 @@
       --text: #e2e8f0;
       --muted: #64748b;
       --glow: rgba(59, 130, 246, 0.15);
-      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-      --card-hover-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
-      --bg-gradient-1: rgba(59, 130, 246, 0.08);
-      --bg-gradient-2: rgba(139, 92, 246, 0.06);
-    }
-
-    /* ─── LIGHT MODE ──────────────────────────────────────────── */
-    [data-theme="light"] {
-      --bg-primary: #f8fafc;
-      --bg-card: #ffffff;
-      --bg-card2: #f1f5f9;
-      --border: rgba(148, 163, 184, 0.15);
-      --accent: #2563eb;
-      --accent2: #7c3aed;
-      --green: #10b981;
-      --red: #ef4444;
-      --yellow: #d97706;
-      --text: #0f172a;
-      --muted: #64748b;
-      --glow: rgba(37, 99, 237, 0.08);
-      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-      --card-hover-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      --bg-gradient-1: rgba(37, 99, 237, 0.06);
-      --bg-gradient-2: rgba(124, 58, 237, 0.05);
     }
 
     body {
@@ -63,18 +38,16 @@
       font-family: 'Inter', sans-serif;
       min-height: 100vh;
       overflow-x: hidden;
-      /* Hiệu ứng chuyển màu mượt mà khi đổi theme */
-      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
-    /* Animated background gradient */
+    /* Animated bg */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       background:
-        radial-gradient(ellipse 80% 50% at 20% -10%, var(--bg-gradient-1) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 110%, var(--bg-gradient-2) 0%, transparent 60%);
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(59, 130, 246, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(139, 92, 246, 0.1) 0%, transparent 60%);
       pointer-events: none;
       z-index: 0;
     }
@@ -95,7 +68,6 @@
       justify-content: space-between;
       border-bottom: 1px solid var(--border);
       margin-bottom: 32px;
-      transition: border-color 0.3s ease;
     }
 
     .logo {
@@ -108,13 +80,12 @@
       width: 40px;
       height: 40px;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: #ffffff;
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 20px;
-      box-shadow: 0 4px 12px rgba(37, 99, 237, 0.3);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
     }
 
     .logo h1 {
@@ -135,28 +106,6 @@
       gap: 16px;
     }
 
-    /* Theme Toggle Button */
-    .theme-toggle {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: var(--card-shadow);
-      transition: all 0.3s ease;
-    }
-
-    .theme-toggle:hover {
-      border-color: var(--accent);
-      transform: translateY(-1px);
-    }
-
     .ws-status {
       display: flex;
       align-items: center;
@@ -167,8 +116,6 @@
       background: var(--bg-card);
       font-size: 12px;
       font-weight: 500;
-      box-shadow: var(--card-shadow);
-      transition: all 0.3s ease;
     }
 
     .ws-dot {
@@ -206,7 +153,11 @@
       }
     }
 
-
+    .server-time {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
 
     /* Stats bar */
     .stats-bar {
@@ -221,13 +172,12 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 20px;
-      box-shadow: var(--card-shadow);
-      transition: all 0.3s ease;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .stat-card:hover {
       transform: translateY(-2px);
-      box-shadow: var(--card-hover-shadow);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
     .stat-label {
@@ -236,7 +186,6 @@
       text-transform: uppercase;
       letter-spacing: 0.8px;
       margin-bottom: 8px;
-      font-weight: 600;
     }
 
     .stat-value {
@@ -300,8 +249,7 @@
       border-radius: 16px;
       padding: 20px;
       cursor: pointer;
-      box-shadow: var(--card-shadow);
-      transition: all 0.3s ease;
+      transition: all 0.25s ease;
       position: relative;
       overflow: hidden;
     }
@@ -312,7 +260,7 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 3px;
+      height: 2px;
       background: linear-gradient(90deg, var(--accent), var(--accent2));
       opacity: 0;
       transition: opacity 0.3s;
@@ -320,12 +268,8 @@
 
     .token-card:hover {
       transform: translateY(-4px);
-      box-shadow: var(--card-hover-shadow);
-      border-color: rgba(59, 130, 246, 0.2);
-    }
-
-    [data-theme="light"] .token-card:hover {
-      border-color: rgba(37, 99, 237, 0.2);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      border-color: rgba(59, 130, 246, 0.3);
     }
 
     .token-card:hover::before {
@@ -348,8 +292,8 @@
       }
 
       30% {
-        background: rgba(16, 185, 129, 0.1);
-        border-color: rgba(16, 185, 129, 0.3);
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.4);
       }
     }
 
@@ -361,8 +305,8 @@
       }
 
       30% {
-        background: rgba(239, 68, 68, 0.1);
-        border-color: rgba(239, 68, 68, 0.3);
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.4);
       }
     }
 
@@ -383,7 +327,7 @@
       width: 38px;
       height: 38px;
       border-radius: 50%;
-      background: var(--bg-card2);
+      background: linear-gradient(135deg, var(--bg-card2), var(--border));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -391,7 +335,6 @@
       font-size: 12px;
       border: 1px solid var(--border);
       color: var(--accent);
-      transition: all 0.3s ease;
     }
 
     .token-symbol {
@@ -413,21 +356,21 @@
     }
 
     .badge-spot {
-      background: rgba(59, 130, 246, 0.1);
-      color: var(--accent);
-      border: 1px solid rgba(59, 130, 246, 0.15);
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.2);
     }
 
     .badge-futures {
-      background: rgba(139, 92, 246, 0.1);
-      color: var(--accent2);
-      border: 1px solid rgba(139, 92, 246, 0.15);
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.2);
     }
 
     .badge-gold {
-      background: rgba(245, 158, 11, 0.1);
-      color: var(--yellow);
-      border: 1px solid rgba(245, 158, 11, 0.2);
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
     }
 
     .token-price {
@@ -487,7 +430,6 @@
       margin-top: 14px;
       padding-top: 14px;
       border-top: 1px solid var(--border);
-      transition: border-color 0.3s ease;
     }
 
     .token-footer-item {
@@ -514,8 +456,6 @@
       margin-bottom: 32px;
       overflow: hidden;
       position: relative;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
-      transition: all 0.3s ease;
     }
 
     .ticker-tape {
@@ -538,12 +478,12 @@
     }
 
     .ticker-sym {
-      color: var(--text);
-      font-weight: 700;
+      color: var(--muted);
+      font-weight: 600;
     }
 
     .ticker-price {
-      font-weight: 600;
+      font-weight: 500;
     }
 
     @keyframes ticker {
@@ -565,19 +505,16 @@
       align-items: center;
       font-size: 12px;
       color: var(--muted);
-      transition: border-color 0.3s ease;
     }
 
     /* Debug panel */
     .debug-panel {
-      background: var(--bg-card);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: #0a0f1a;
+      border: 1px solid rgba(239, 68, 68, 0.2);
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 24px;
-      box-shadow: var(--card-shadow);
       display: none;
-      transition: all 0.3s ease;
     }
 
     .debug-panel.visible {
@@ -585,15 +522,13 @@
     }
 
     .debug-toggle {
-      background: var(--bg-card2);
+      background: none;
       border: 1px solid var(--border);
       color: var(--muted);
       padding: 4px 10px;
       border-radius: 6px;
       font-size: 11px;
       cursor: pointer;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-      transition: all 0.3s ease;
     }
 
     .debug-toggle:hover {
@@ -604,24 +539,22 @@
     #debugLog {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      color: var(--text);
+      color: #94a3b8;
       max-height: 140px;
       overflow-y: auto;
       line-height: 1.8;
     }
 
     #debugLog .log-err {
-      color: var(--red);
-      font-weight: 600;
+      color: #f87171;
     }
 
     #debugLog .log-ok {
-      color: var(--green);
-      font-weight: 600;
+      color: #34d399;
     }
 
     #debugLog .log-info {
-      color: var(--accent);
+      color: #60a5fa;
     }
 
     /* Responsive */
@@ -638,11 +571,6 @@
         flex-direction: column;
         gap: 16px;
       }
-
-      .header-right {
-        width: 100%;
-        justify-content: space-between;
-      }
     }
   </style>
 </head>
@@ -658,9 +586,7 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn">
-          <span>🌙</span> <span>Dark Mode</span>
-        </button>
+        <div class="server-time" id="serverTime">--:--:--</div>
         <div class="ws-status">
           <div class="ws-dot connecting" id="wsDot"></div>
           <span id="wsLabel">Connecting...</span>
@@ -668,6 +594,7 @@
       </div>
     </header>
 
+    <!-- Stats bar -->
     <div class="stats-bar">
       <div class="stat-card">
         <div class="stat-label">Tokens Active</div>
@@ -694,6 +621,7 @@
       </div>
     </div>
 
+    <!-- Ticker tape -->
     <div class="ticker-wrap">
       <div class="ticker-tape" id="tickerTape">
         <span class="ticker-item"><span class="ticker-sym">⌛</span><span class="ticker-price">Đang kết nối Bybit
@@ -701,9 +629,11 @@
       </div>
     </div>
 
+    <!-- Token cards -->
     <div class="section-title">📊 Top tokens</div>
     <div class="token-grid" id="tokenGrid"></div>
 
+    <!-- Debug panel -->
     <div class="debug-panel" id="debugPanel">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:12px;font-weight:600;color:var(--yellow)">🐞 Debug Console</span>
@@ -716,6 +646,7 @@
     <footer>
       <span>© 2026 Gold Bot Dashboard — Bybit WebSocket API</span>
       <div style="display:flex;align-items:center;gap:12px">
+        <button class="debug-toggle" onclick="toggleDebug()">🐞 Debug</button>
         <span id="lastUpdateTime">Chưa có dữ liệu</span>
       </div>
     </footer>
@@ -727,11 +658,11 @@
       { symbol: 'XAUUSDT', name: 'Gold / Vàng', icon: '🥇', type: 'gold' },
       { symbol: 'BTCUSDT', name: 'Bitcoin', icon: '₿', type: 'spot' },
       { symbol: 'ETHUSDT', name: 'Ethereum', icon: 'Ξ', type: 'spot' },
-      { symbol: 'BNBUSDT', name: 'BNB', icon: '🔶', type: 'spot' },
+      { symbol: 'BNBUSDT', name: 'BNB', icon: 'B', type: 'spot' },
       { symbol: 'SOLUSDT', name: 'Solana', icon: '◎', type: 'spot' },
-      { symbol: 'APTUSDT', name: 'Aptos', icon: 'APT', type: 'spot' },
-      { symbol: 'ARBUSDT', name: 'Arbitrum', icon: 'ARB', type: 'spot' },
-      { symbol: 'AVAXUSDT', name: 'Avalanche', icon: '🔺', type: 'spot' },
+      { symbol: 'APTUSDT', name: 'Aptos', icon: 'A', type: 'spot' },
+      { symbol: 'ARBUSDT', name: 'Arbitrum', icon: 'A', type: 'spot' },
+      { symbol: 'AVAXUSDT', name: 'Avalanche', icon: 'A', type: 'spot' },
       { symbol: 'LINKUSDT', name: 'Chainlink', icon: '⬡', type: 'spot' },
       { symbol: 'DOTUSDT', name: 'Polkadot', icon: '●', type: 'spot' },
     ];
@@ -746,31 +677,6 @@
     let updateCount = 0;
     let reconnectDelay = 2000;
 
-    // ─── THEME LOGIC (NEW) ────────────────────────────────────────
-    function initTheme() {
-      const savedTheme = localStorage.getItem('theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', savedTheme);
-      updateThemeButton(savedTheme);
-    }
-
-    function toggleTheme() {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
-      updateThemeButton(newTheme);
-    }
-
-    function updateThemeButton(theme) {
-      const btn = document.getElementById('themeToggleBtn');
-      if (!btn) return;
-      if (theme === 'light') {
-        btn.innerHTML = '<span>☀️</span> <span>Light Mode</span>';
-      } else {
-        btn.innerHTML = '<span>🌙</span> <span>Dark Mode</span>';
-      }
-    }
-
     // ─── INIT CARDS ───────────────────────────────────────────────
     function initCards() {
       const grid = document.getElementById('tokenGrid');
@@ -781,39 +687,39 @@
         card.className = 'token-card';
         card.id = `card-${t.symbol}`;
         card.innerHTML = `
-          <div class="token-header">
-            <div class="token-info">
-              <div class="token-icon">${t.icon}</div>
-              <div>
-                <div class="token-symbol">${t.symbol.replace('USDT', '')}</div>
-                <div class="token-name">${t.name}</div>
-              </div>
-            </div>
-            <span class="token-badge badge-${t.type}">${t.type}</span>
+      <div class="token-header">
+        <div class="token-info">
+          <div class="token-icon">${t.icon}</div>
+          <div>
+            <div class="token-symbol">${t.symbol.replace('USDT', '')}</div>
+            <div class="token-name">${t.name}</div>
           </div>
-          <div class="token-price loading" id="price-${t.symbol}"></div>
-          <div class="token-change" id="change-${t.symbol}">
-            <span class="change-neutral">— Waiting for data...</span>
-          </div>
-          <div class="token-footer">
-            <div class="token-footer-item">
-              <div class="footer-label">24h High</div>
-              <div class="footer-val" id="high-${t.symbol}">—</div>
-            </div>
-            <div class="token-footer-item">
-              <div class="footer-label">24h Low</div>
-              <div class="footer-val" id="low-${t.symbol}">—</div>
-            </div>
-            <div class="token-footer-item">
-              <div class="footer-label">Volume (USDT)</div>
-              <div class="footer-val" id="vol-${t.symbol}">—</div>
-            </div>
-            <div class="token-footer-item">
-              <div class="footer-label">Updated</div>
-              <div class="footer-val" id="upd-${t.symbol}">—</div>
-            </div>
-          </div>
-        `;
+        </div>
+        <span class="token-badge badge-${t.type}">${t.type}</span>
+      </div>
+      <div class="token-price loading" id="price-${t.symbol}"></div>
+      <div class="token-change" id="change-${t.symbol}">
+        <span class="change-neutral">— Waiting for data...</span>
+      </div>
+      <div class="token-footer">
+        <div class="token-footer-item">
+          <div class="footer-label">24h High</div>
+          <div class="footer-val" id="high-${t.symbol}">—</div>
+        </div>
+        <div class="token-footer-item">
+          <div class="footer-label">24h Low</div>
+          <div class="footer-val" id="low-${t.symbol}">—</div>
+        </div>
+        <div class="token-footer-item">
+          <div class="footer-label">Volume (USDT)</div>
+          <div class="footer-val" id="vol-${t.symbol}">—</div>
+        </div>
+        <div class="token-footer-item">
+          <div class="footer-label">Updated</div>
+          <div class="footer-val" id="upd-${t.symbol}">—</div>
+        </div>
+      </div>
+    `;
         grid.appendChild(card);
       });
       document.getElementById('statTokens').textContent = TOKENS.length;
@@ -856,23 +762,27 @@
 
       const oldPrice = prices[sym].price;
 
+      // Handle partial updates (delta)
       let newPrice = oldPrice;
       if (data.lastPrice !== undefined) newPrice = parseFloat(data.lastPrice);
       else if (data.price !== undefined) newPrice = parseFloat(data.price);
 
-      if (newPrice === null || isNaN(newPrice)) return;
+      if (newPrice === null || isNaN(newPrice)) return; // No price data yet
 
+      // Flash animation
       if (oldPrice !== null && newPrice !== oldPrice) {
         card.classList.remove('flash-green', 'flash-red');
-        void card.offsetWidth;
+        void card.offsetWidth; // reflow
         card.classList.add(newPrice > oldPrice ? 'flash-green' : 'flash-red');
       }
 
       prices[sym].price = newPrice;
 
+      // Price
       priceEl.classList.remove('loading');
       priceEl.textContent = formatPrice(newPrice, sym);
 
+      // Change (handle partial)
       if (data.price24hPcnt !== undefined) {
         prices[sym].change = parseFloat(data.price24hPcnt) * 100;
       }
@@ -882,11 +792,14 @@
       const cls = chg > 0 ? 'change-up' : chg < 0 ? 'change-down' : 'change-neutral';
       changeEl.innerHTML = `<span class="${cls}">${arrow} ${chgStr}</span>`;
 
+      // Update stored values for footer if present in payload
       if (data.highPrice24h !== undefined) prices[sym].high = data.highPrice24h;
       if (data.lowPrice24h !== undefined) prices[sym].low = data.lowPrice24h;
+      // Some endpoints use volume24h, some use turnover24h
       if (data.volume24h !== undefined) prices[sym].vol = data.volume24h;
       else if (data.turnover24h !== undefined) prices[sym].vol = data.turnover24h;
 
+      // Render Footer
       if (highEl) highEl.textContent = formatPrice(prices[sym].high, sym);
       if (lowEl) lowEl.textContent = formatPrice(prices[sym].low, sym);
       if (volEl) volEl.textContent = formatVol(prices[sym].vol);
@@ -905,9 +818,9 @@
       if (activeTokens.length === 0) return;
 
       const sorted = [...activeTokens].sort((a, b) => prices[b.symbol].change - prices[a.symbol].change);
-      const gainers = sorted.slice(0, 3).filter(t => prices[t.symbol].change > 0);
 
-      const losers = [...activeTokens].sort((a, b) => prices[a.symbol].change - prices[b.symbol].change).slice(0, 3).filter(t => prices[t.symbol].change < 0);
+      const gainers = sorted.slice(0, 3).filter(t => prices[t.symbol].change > 0);
+      const losers = [...sorted].reverse().slice(0, 3).filter(t => prices[t.symbol].change < 0);
 
       const sortedVol = [...activeTokens].sort((a, b) => (parseFloat(prices[b.symbol].vol) || 0) - (parseFloat(prices[a.symbol].vol) || 0));
       const topVolumes = sortedVol.slice(0, 3).filter(t => parseFloat(prices[t.symbol].vol) > 0);
@@ -915,25 +828,25 @@
       const gainerHtml = gainers.length > 0 ? gainers.map(t => {
         const chg = prices[t.symbol].change;
         return `<div class="stat-list-item">
-          <span>${t.symbol.replace('USDT', '')}</span>
-          <span style="color:var(--green)">+${chg.toFixed(2)}%</span>
-        </div>`;
+      <span>${t.symbol.replace('USDT', '')}</span>
+      <span style="color:var(--green)">+${chg.toFixed(2)}%</span>
+    </div>`;
       }).join('') : '<div style="font-size:12px; color:var(--muted)">Không có token tăng</div>';
 
       const loserHtml = losers.length > 0 ? losers.map(t => {
         const chg = prices[t.symbol].change;
         return `<div class="stat-list-item">
-          <span>${t.symbol.replace('USDT', '')}</span>
-          <span style="color:var(--red)">${chg.toFixed(2)}%</span>
-        </div>`;
+      <span>${t.symbol.replace('USDT', '')}</span>
+      <span style="color:var(--red)">${chg.toFixed(2)}%</span>
+    </div>`;
       }).join('') : '<div style="font-size:12px; color:var(--muted)">Không có token giảm</div>';
 
       const volHtml = topVolumes.length > 0 ? topVolumes.map(t => {
         const volStr = formatVol(prices[t.symbol].vol);
         return `<div class="stat-list-item">
-          <span>${t.symbol.replace('USDT', '')}</span>
-          <span style="color:var(--accent2)">${volStr}</span>
-        </div>`;
+      <span>${t.symbol.replace('USDT', '')}</span>
+      <span style="color:var(--accent2)">${volStr}</span>
+    </div>`;
       }).join('') : '<div style="font-size:12px; color:var(--muted)">—</div>';
 
       document.getElementById('statGainerList').innerHTML = gainerHtml;
@@ -951,15 +864,15 @@
           const col = chg > 0 ? '#10b981' : chg < 0 ? '#ef4444' : '#64748b';
           const sym = t.symbol.replace('USDT', '');
           return `<span class="ticker-item">
-            <span class="ticker-sym">${sym}</span>
-            <span class="ticker-price" style="color:${col}">${formatPrice(p.price, t.symbol)}</span>
-            <span style="color:${col};font-size:11px">${chg >= 0 ? '▲' : '▼'}${Math.abs(chg).toFixed(2)}%</span>
-          </span>`;
+        <span class="ticker-sym">${sym}</span>
+        <span class="ticker-price" style="color:${col}">${formatPrice(p.price, t.symbol)}</span>
+        <span style="color:${col};font-size:11px">${chg >= 0 ? '▲' : '▼'}${Math.abs(chg).toFixed(2)}%</span>
+      </span>`;
         }).join('');
 
       if (!items) return;
       const tape = document.getElementById('tickerTape');
-      tape.innerHTML = items + items;
+      tape.innerHTML = items + items; // duplicate for seamless loop
     }
 
     // ─── DEBUG ────────────────────────────────────────────────────
@@ -977,6 +890,7 @@
     }
 
     // ─── REST FALLBACK ────────────────────────────────────────────
+    // Load snapshot prices via REST first, then WS keeps it live
     async function loadRestSnapshot() {
       try {
         dbg('Fetching REST snapshot from Bybit...');
@@ -1069,7 +983,7 @@
       ws.onmessage = (evt) => {
         try {
           const msg = JSON.parse(evt.data);
-          if (msg.op === 'pong') return;
+          if (msg.op === 'pong') { /* dbg(`[${type}] Pong received`); */ return; }
           if (msg.op === 'subscribe') {
             dbg(`[${type}] Subscribe ack: ` + JSON.stringify(msg), msg.success ? 'ok' : 'err');
             return;
@@ -1096,12 +1010,21 @@
       };
     }
 
+    // ─── CLOCK ────────────────────────────────────────────────────
+    function startClock() {
+      const el = document.getElementById('serverTime');
+      setInterval(() => {
+        el.textContent = new Date().toLocaleTimeString('vi-VN', {
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+      }, 1000);
+    }
 
     // ─── BOOT ─────────────────────────────────────────────────────
-    initTheme(); // Thiết lập theme từ LocalStorage trước khi render UI
     initCards();
-    loadRestSnapshot();
-    connect();
+    startClock();
+    loadRestSnapshot();   // load prices immediately via REST
+    connect();            // then keep live via WebSocket
   </script>
 </body>
 
