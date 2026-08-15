@@ -8,6 +8,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
     rel="stylesheet" />
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
   <style>
     *,
     *::before,
@@ -135,33 +136,74 @@
       gap: 16px;
     }
 
-    /* Theme Toggle Button */
-    .theme-toggle {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      display: flex;
+    /* Theme Toggle Switch */
+    .theme-switch {
+      position: relative;
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: var(--card-shadow);
-      transition: all 0.3s ease;
+      width: 52px;
+      height: 28px;
+      cursor: pointer;
+      margin: 0;
+      user-select: none;
     }
 
-    .theme-toggle:hover {
+    .theme-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .theme-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      box-shadow: var(--card-shadow);
+    }
+
+    .theme-switch:hover .theme-slider {
       border-color: var(--accent);
-      transform: translateY(-1px);
+    }
+
+    .theme-slider-thumb {
+      position: absolute;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 50%;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    .theme-switch input:checked + .theme-slider {
+      background: #e2e8f0;
+      border-color: rgba(37, 99, 237, 0.3);
+    }
+
+    .theme-switch input:checked + .theme-slider .theme-slider-thumb {
+      transform: translateX(24px);
+      background: linear-gradient(135deg, #f59e0b, #ea580c);
+      box-shadow: 0 2px 5px rgba(245, 158, 11, 0.4);
     }
 
     .ws-status {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
+      height: 28px;
+      padding: 0 12px;
       border-radius: 20px;
       border: 1px solid var(--border);
       background: var(--bg-card);
@@ -644,6 +686,322 @@
         justify-content: space-between;
       }
     }
+
+    /* ─── CHART MODAL ─────────────────────────────────────────── */
+    .chart-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    .chart-modal-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .chart-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      width: min(960px, 95vw);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .chart-modal-overlay.open .chart-modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .chart-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .chart-modal-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chart-modal-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--bg-card2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      color: var(--accent);
+      transition: all 0.3s ease;
+    }
+
+    .chart-modal-sym {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .chart-modal-name {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .chart-modal-price-info {
+      text-align: right;
+    }
+
+    .chart-live-price {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .chart-live-change {
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    .chart-close-btn {
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.2s ease;
+      margin-left: 16px;
+      flex-shrink: 0;
+    }
+
+    .chart-close-btn:hover {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: var(--red);
+    }
+
+    .chart-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .chart-toolbar-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-right: 4px;
+    }
+
+    .tf-btn {
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tf-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .tf-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+    }
+
+    .chart-type-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    .ct-btn {
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .ct-btn:hover,
+    .ct-btn.active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .chart-body {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+    }
+
+    #chartContainer {
+      width: 100%;
+      height: 440px;
+    }
+
+    .chart-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-card);
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .chart-loading-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .chart-loading-text {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .chart-stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .chart-stat {
+      background: var(--bg-card);
+      padding: 12px 20px;
+      text-align: center;
+    }
+
+    .chart-stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .chart-stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    /* token-card cursor pointer hint */
+    .token-card {
+      cursor: pointer;
+    }
+
+
+    @media (max-width: 600px) {
+      #chartContainer {
+        height: 300px;
+      }
+
+      .chart-stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .chart-modal-header {
+        padding: 14px 16px 12px;
+      }
+
+      .chart-toolbar {
+        padding: 10px 16px;
+      }
+    }
+
+    /* LIVE badge */
+    .chart-live-badge {
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid currentColor;
+      transition: color 0.3s ease, text-shadow 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .chart-live-badge[style*="--green"] {
+      animation: livePulse 2s ease infinite;
+    }
+
+    @keyframes livePulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.6;
+      }
+    }
   </style>
 </head>
 
@@ -658,9 +1016,12 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn">
-          <span>🌙</span> <span>Dark Mode</span>
-        </button>
+        <label class="theme-switch" for="themeSwitchInput" title="Chuyển đổi giao diện Sáng / Tối">
+          <input type="checkbox" id="themeSwitchInput" onchange="toggleTheme()" />
+          <span class="theme-slider">
+            <span class="theme-slider-thumb" id="themeSliderThumb">🌙</span>
+          </span>
+        </label>
         <div class="ws-status">
           <div class="ws-dot connecting" id="wsDot"></div>
           <span id="wsLabel">Connecting...</span>
@@ -705,6 +1066,73 @@
     <div class="section-title">📊 Top tokens</div>
     <div class="token-grid" id="tokenGrid"></div>
 
+    <!-- ─── CHART MODAL ─────────────────────────────────────────── -->
+    <div class="chart-modal-overlay" id="chartOverlay" onclick="handleOverlayClick(event)">
+      <div class="chart-modal" id="chartModal">
+        <div class="chart-modal-header">
+          <div class="chart-modal-title">
+            <div class="chart-modal-icon" id="chartModalIcon">₿</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="chart-modal-sym" id="chartModalSym">BTC</div>
+                <span class="chart-live-badge" id="chartLiveBadge">○ Offline</span>
+              </div>
+              <div class="chart-modal-name" id="chartModalName">Bitcoin</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <div class="chart-modal-price-info">
+              <div class="chart-live-price" id="chartLivePrice">—</div>
+              <div class="chart-live-change" id="chartLiveChange">—</div>
+            </div>
+            <button class="chart-close-btn" onclick="closeChart()" title="Đóng">✕</button>
+          </div>
+        </div>
+
+        <div class="chart-toolbar">
+          <button class="tf-btn" data-tf="1" onclick="setTimeframe('1')">1m</button>
+          <button class="tf-btn" data-tf="3" onclick="setTimeframe('3')">3m</button>
+          <button class="tf-btn" data-tf="5" onclick="setTimeframe('5')">5m</button>
+          <button class="tf-btn" data-tf="15" onclick="setTimeframe('15')">15m</button>
+          <button class="tf-btn" data-tf="60" onclick="setTimeframe('60')">1h</button>
+          <button class="tf-btn" data-tf="240" onclick="setTimeframe('240')">4h</button>
+          <button class="tf-btn active" data-tf="D" onclick="setTimeframe('D')">1D</button>
+          <button class="tf-btn" data-tf="W" onclick="setTimeframe('W')">1W</button>
+          <button class="tf-btn" data-tf="M" onclick="setTimeframe('M')">1M</button>
+          <div class="chart-type-sep"></div>
+          <button class="ct-btn active" id="btnCandle" onclick="setChartType('candle')">🕯 Nến</button>
+          <button class="ct-btn" id="btnLine" onclick="setChartType('line')">📈 Line</button>
+        </div>
+
+        <div class="chart-body">
+          <div class="chart-loading" id="chartLoading">
+            <div class="chart-loading-spinner"></div>
+            <div class="chart-loading-text">Đang tải dữ liệu chart...</div>
+          </div>
+          <div id="chartContainer"></div>
+        </div>
+
+        <div class="chart-stats-bar">
+          <div class="chart-stat">
+            <div class="chart-stat-label">24h Open</div>
+            <div class="chart-stat-val" id="cStatOpen">—</div>
+          </div>
+          <div class="chart-stat">
+            <div class="chart-stat-label">24h High</div>
+            <div class="chart-stat-val" id="cStatHigh" style="color:var(--green)">—</div>
+          </div>
+          <div class="chart-stat">
+            <div class="chart-stat-label">24h Low</div>
+            <div class="chart-stat-val" id="cStatLow" style="color:var(--red)">—</div>
+          </div>
+          <div class="chart-stat">
+            <div class="chart-stat-label">24h Volume</div>
+            <div class="chart-stat-val" id="cStatVol" style="color:var(--accent2)">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="debug-panel" id="debugPanel">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:12px;font-weight:600;color:var(--yellow)">🐞 Debug Console</span>
@@ -747,28 +1175,37 @@
     let updateCount = 0;
     let reconnectDelay = 2000;
 
-    // ─── THEME LOGIC (NEW) ────────────────────────────────────────
+    // ─── THEME LOGIC (TOGGLE SWITCH) ─────────────────────────────
     function initTheme() {
       const savedTheme = localStorage.getItem('theme') || 'dark';
       document.documentElement.setAttribute('data-theme', savedTheme);
-      updateThemeButton(savedTheme);
+      updateThemeSwitch(savedTheme);
     }
 
     function toggleTheme() {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      const checkbox = document.getElementById('themeSwitchInput');
+      const newTheme = checkbox && checkbox.checked ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', newTheme);
       localStorage.setItem('theme', newTheme);
-      updateThemeButton(newTheme);
+      updateThemeSwitch(newTheme);
+
+      // If chart modal is open, re-render with new theme palette
+      if (currentChartSym) {
+        initChartInstance();
+        loadKlines(currentChartSym, currentTf);
+      }
     }
 
-    function updateThemeButton(theme) {
-      const btn = document.getElementById('themeToggleBtn');
-      if (!btn) return;
-      if (theme === 'light') {
-        btn.innerHTML = '<span>☀️</span> <span>Light Mode</span>';
-      } else {
-        btn.innerHTML = '<span>🌙</span> <span>Dark Mode</span>';
+    function updateThemeSwitch(theme) {
+      const checkbox = document.getElementById('themeSwitchInput');
+      const thumb = document.getElementById('themeSliderThumb');
+      const isLight = theme === 'light';
+
+      if (checkbox) {
+        checkbox.checked = isLight;
+      }
+      if (thumb) {
+        thumb.textContent = isLight ? '☀️' : '🌙';
       }
     }
 
@@ -815,17 +1252,30 @@
             </div>
           </div>
         `;
+        card.addEventListener('click', () => openChart(t.symbol));
         grid.appendChild(card);
       });
     }
 
     // ─── FORMAT ───────────────────────────────────────────────────
+    function getPriceFormatOptions(sym, samplePrice) {
+      const p = samplePrice !== undefined && samplePrice !== null ? samplePrice : (prices[sym] ? prices[sym].price : 100);
+      const n = parseFloat(p) || 100;
+      if (n >= 1000) return { type: 'price', precision: 2, minMove: 0.01 };
+      if (n >= 50) return { type: 'price', precision: 2, minMove: 0.01 };
+      if (n >= 1) return { type: 'price', precision: 4, minMove: 0.0001 };
+      if (n >= 0.01) return { type: 'price', precision: 4, minMove: 0.0001 };
+      return { type: 'price', precision: 6, minMove: 0.000001 };
+    }
+
     function formatPrice(p, sym) {
       if (p === null || p === undefined) return '—';
       const n = parseFloat(p);
-      if (sym && (sym.includes('BTC') || sym.includes('ETH') || sym.includes('XAU'))) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (isNaN(n)) return '—';
       if (n >= 1000) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (n >= 50) return '$' + n.toFixed(2);
       if (n >= 1) return '$' + n.toFixed(4);
+      if (n >= 0.01) return '$' + n.toFixed(4);
       return '$' + n.toFixed(6);
     }
     function formatVol(v) {
@@ -1109,6 +1559,440 @@
       };
     }
 
+
+    // ─── CHART MODULE ─────────────────────────────────────────────
+    let chartInstance = null;       // LightweightCharts chart object
+    let candleSeries = null;        // active series
+    let volumeSeries = null;
+    let currentChartSym = null;
+    let currentTf = 'D';
+    let currentChartType = 'candle';
+    let chartUpdateInterval = null;
+
+    // Realtime kline WebSocket
+    let wsChart = null;
+    let wsChartHb = null;           // heartbeat interval
+    let lastKlineBar = null;        // last bar pushed to series (for update vs append)
+
+    const TF_BYBIT_MAP = { '1': '1', '3': '3', '5': '5', '15': '15', '60': '60', '240': '240', 'D': 'D', 'W': 'W', 'M': 'M' };
+    const TF_LIMIT = { '1': 1000, '3': 1000, '5': 1000, '15': 1000, '60': 1000, '240': 1000, 'D': 1000, 'W': 1000, 'M': 1000 };
+
+    function getChartColors() {
+      const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+      return {
+        bg: isDark ? '#0d1624' : '#ffffff',
+        text: isDark ? '#94a3b8' : '#64748b',
+        grid: isDark ? 'rgba(99,179,237,0.06)' : 'rgba(0,0,0,0.05)',
+        border: isDark ? 'rgba(99,179,237,0.12)' : 'rgba(0,0,0,0.1)',
+        upColor: '#10b981',
+        downColor: '#ef4444',
+        wickUp: '#10b981',
+        wickDown: '#ef4444',
+        line: '#3b82f6',
+      };
+    }
+
+    function openChart(sym) {
+      const token = TOKENS.find(t => t.symbol === sym);
+      if (!token) return;
+      currentChartSym = sym;
+
+      // Update modal header
+      document.getElementById('chartModalIcon').textContent = token.icon;
+      document.getElementById('chartModalSym').textContent = sym.replace('USDT', '') + ' / USDT';
+      document.getElementById('chartModalName').textContent = token.name;
+
+      // Update live price
+      updateChartLivePrice(sym);
+
+      // Update stats bar
+      const p = prices[sym];
+      document.getElementById('cStatOpen').textContent = formatPrice(p.prevClose || p.price, sym);
+      document.getElementById('cStatHigh').textContent = formatPrice(p.high, sym);
+      document.getElementById('cStatLow').textContent = formatPrice(p.low, sym);
+      document.getElementById('cStatVol').textContent = formatVol(p.vol);
+
+      // Open overlay
+      document.getElementById('chartOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      // Init or re-init chart, then connect realtime WS
+      initChartInstance();
+      loadKlines(sym, currentTf);   // connectChartWs is called inside after data loads
+
+      // Live price fallback update loop (header price from ticker WS)
+      if (chartUpdateInterval) clearInterval(chartUpdateInterval);
+      chartUpdateInterval = setInterval(() => {
+        if (currentChartSym) updateChartLivePrice(currentChartSym);
+      }, 500);
+    }
+
+    function updateChartLivePrice(sym) {
+      const p = prices[sym];
+      if (!p || p.price === null) return;
+      const el = document.getElementById('chartLivePrice');
+      const chEl = document.getElementById('chartLiveChange');
+      if (el) el.textContent = formatPrice(p.price, sym);
+      if (chEl && p.change !== null) {
+        const chg = p.change;
+        const chgStr = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+        chEl.textContent = (chg >= 0 ? '▲ ' : '▼ ') + chgStr;
+        chEl.style.color = chg > 0 ? 'var(--green)' : chg < 0 ? 'var(--red)' : 'var(--muted)';
+      }
+      // update stats bar dynamically
+      if (p.high) document.getElementById('cStatHigh').textContent = formatPrice(p.high, sym);
+      if (p.low) document.getElementById('cStatLow').textContent = formatPrice(p.low, sym);
+      if (p.vol) document.getElementById('cStatVol').textContent = formatVol(p.vol);
+    }
+
+    function closeChart() {
+      document.getElementById('chartOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+      if (chartUpdateInterval) { clearInterval(chartUpdateInterval); chartUpdateInterval = null; }
+      disconnectChartWs();
+      currentChartSym = null;
+      lastKlineBar = null;
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById('chartOverlay')) closeChart();
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeChart(); });
+
+    function initChartInstance() {
+      const container = document.getElementById('chartContainer');
+      container.innerHTML = '';
+
+      const colors = getChartColors();
+      chartInstance = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: container.clientHeight || 440,
+        layout: {
+          background: { color: colors.bg },
+          textColor: colors.text,
+          fontSize: 12,
+          fontFamily: "'JetBrains Mono', monospace",
+        },
+        grid: {
+          vertLines: { color: colors.grid },
+          horzLines: { color: colors.grid },
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+          borderColor: colors.border,
+          scaleMargins: { top: 0.08, bottom: 0.22 },
+        },
+        timeScale: {
+          borderColor: colors.border,
+          timeVisible: true,
+          secondsVisible: false,
+          rightOffset: 6,
+          barSpacing: 6,
+          minBarSpacing: 0.5,
+        },
+        handleScroll: true,
+        handleScale: true,
+      });
+
+      const priceFormatOpts = getPriceFormatOptions(currentChartSym);
+
+      // Add candle or line series
+      if (currentChartType === 'candle') {
+        candleSeries = chartInstance.addCandlestickSeries({
+          upColor: colors.upColor,
+          downColor: colors.downColor,
+          borderUpColor: colors.upColor,
+          borderDownColor: colors.downColor,
+          wickUpColor: colors.wickUp,
+          wickDownColor: colors.wickDown,
+          priceFormat: priceFormatOpts,
+        });
+      } else {
+        candleSeries = chartInstance.addAreaSeries({
+          lineColor: colors.line,
+          topColor: 'rgba(59,130,246,0.25)',
+          bottomColor: 'rgba(59,130,246,0.02)',
+          lineWidth: 2,
+          priceScaleId: 'right',
+          priceFormat: priceFormatOpts,
+        });
+      }
+
+      // Volume series
+      volumeSeries = chartInstance.addHistogramSeries({
+        color: 'rgba(59,130,246,0.3)',
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'vol',
+      });
+      chartInstance.priceScale('vol').applyOptions({
+        scaleMargins: { top: 0.82, bottom: 0 },
+      });
+
+      // Responsive resize
+      const ro = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          chartInstance && chartInstance.applyOptions({ width: entry.contentRect.width });
+        }
+      });
+      ro.observe(container);
+    }
+
+    async function loadKlines(sym, interval) {
+      if (!chartInstance) return;
+      document.getElementById('chartLoading').style.display = 'flex';
+
+      // Detect category
+      const token = TOKENS.find(t => t.symbol === sym);
+      const category = token && token.type === 'gold' ? 'linear' : 'spot';
+      const targetLimit = TF_LIMIT[interval] || 1000;
+      const bybitInterval = TF_BYBIT_MAP[interval] || interval;
+
+      try {
+        let raw = [];
+        let endTime = null;
+
+        // Fetch up to targetLimit bars (Bybit supports up to 1000 per request)
+        while (raw.length < targetLimit) {
+          const currentLimit = Math.min(targetLimit - raw.length, 1000);
+          let url = `https://api.bybit.com/v5/market/kline?category=${category}&symbol=${sym}&interval=${bybitInterval}&limit=${currentLimit}`;
+          if (endTime) {
+            url += `&end=${endTime}`;
+          }
+
+          const res = await fetch(url);
+          const json = await res.json();
+          if (json.retCode !== 0 || !json.result || !json.result.list || json.result.list.length === 0) break;
+
+          const batch = json.result.list;
+          raw = raw.concat(batch);
+
+          if (batch.length < currentLimit) break; // Reached beginning of history
+
+          const oldestTimestamp = parseInt(batch[batch.length - 1][0]);
+          endTime = oldestTimestamp - 1;
+        }
+
+        if (raw.length === 0) throw new Error('No data');
+
+        // Bybit returns newest first, reverse for chronological order
+        raw.reverse();
+
+        const candleData = [];
+        const volData = [];
+
+        for (const bar of raw) {
+          const ts = Math.floor(parseInt(bar[0]) / 1000);
+          const o = parseFloat(bar[1]);
+          const h = parseFloat(bar[2]);
+          const l = parseFloat(bar[3]);
+          const c = parseFloat(bar[4]);
+          const v = parseFloat(bar[5]);
+
+          if (currentChartType === 'candle') {
+            candleData.push({ time: ts, open: o, high: h, low: l, close: c });
+          } else {
+            candleData.push({ time: ts, value: c });
+          }
+          volData.push({
+            time: ts,
+            value: v,
+            color: c >= o ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)',
+          });
+        }
+
+        candleSeries.setData(candleData);
+        volumeSeries.setData(volData);
+
+        // Adjust price format precision to match exact data
+        if (candleData.length > 0) {
+          const latestClose = candleData[candleData.length - 1].close;
+          candleSeries.applyOptions({
+            priceFormat: getPriceFormatOptions(sym, latestClose),
+          });
+        }
+
+        // Set initial view to the most recent 120 candles while allowing full scroll/zoom over entire history
+        if (candleData.length > 0) {
+          const total = candleData.length;
+          const visibleCount = Math.min(total, 120);
+          chartInstance.timeScale().setVisibleLogicalRange({
+            from: total - visibleCount,
+            to: total + 4,
+          });
+        }
+
+        // Keep track of last bar for realtime updates
+        if (candleData.length > 0) lastKlineBar = candleData[candleData.length - 1];
+
+        dbg(`Chart loaded: ${sym} ${interval} — ${raw.length} bars`, 'ok');
+
+        // Connect kline realtime WS after historical data is loaded
+        connectChartWs(sym, interval);
+      } catch (e) {
+        dbg(`Chart load error (${sym} ${interval}): ` + e.message, 'err');
+      } finally {
+        document.getElementById('chartLoading').style.display = 'none';
+      }
+    }
+
+    // ─── REALTIME KLINE WEBSOCKET ─────────────────────────────────
+    function getWsUrlForSym(sym) {
+      const token = TOKENS.find(t => t.symbol === sym);
+      return token && token.type === 'gold' ? WS_URL_LINEAR : WS_URL_SPOT;
+    }
+
+    function setChartLiveBadge(state) {
+      // state: 'live' | 'connecting' | 'off'
+      const badge = document.getElementById('chartLiveBadge');
+      if (!badge) return;
+      const map = {
+        live: { text: '● LIVE', color: 'var(--green)', shadow: '0 0 6px var(--green)' },
+        connecting: { text: '◌ Connecting', color: 'var(--yellow)', shadow: 'none' },
+        off: { text: '○ Offline', color: 'var(--muted)', shadow: 'none' },
+      };
+      const s = map[state] || map.off;
+      badge.textContent = s.text;
+      badge.style.color = s.color;
+      badge.style.textShadow = s.shadow;
+    }
+
+    function connectChartWs(sym, interval) {
+      disconnectChartWs();
+      if (!sym || !candleSeries) return;
+
+      const wsUrl = getWsUrlForSym(sym);
+      const bybitInterval = TF_BYBIT_MAP[interval] || interval;
+      const topic = `kline.${bybitInterval}.${sym}`;
+
+      setChartLiveBadge('connecting');
+      dbg(`[ChartWS] Connecting for ${topic}...`);
+
+      try {
+        wsChart = new WebSocket(wsUrl);
+      } catch (e) {
+        dbg('[ChartWS] Failed to init: ' + e.message, 'err');
+        setChartLiveBadge('off');
+        return;
+      }
+
+      wsChart.onopen = () => {
+        wsChart.send(JSON.stringify({ op: 'subscribe', args: [topic] }));
+        dbg(`[ChartWS] Subscribed: ${topic}`, 'ok');
+        setChartLiveBadge('live');
+
+        // Heartbeat ping every 20s
+        wsChartHb = setInterval(() => {
+          if (wsChart && wsChart.readyState === WebSocket.OPEN) {
+            wsChart.send(JSON.stringify({ op: 'ping' }));
+          }
+        }, 20000);
+      };
+
+      wsChart.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.op === 'pong') return;
+          if (msg.op === 'subscribe') return;
+          if (!msg.topic || !msg.topic.startsWith('kline.') || !msg.data) return;
+
+          // msg.data is an array (usually 1 element)
+          for (const bar of msg.data) {
+            const ts = Math.floor(parseInt(bar.start) / 1000);
+            const o = parseFloat(bar.open);
+            const h = parseFloat(bar.high);
+            const l = parseFloat(bar.low);
+            const c = parseFloat(bar.close);
+            const v = parseFloat(bar.volume);
+            const confirmed = bar.confirm === true;
+
+            // Update chart series
+            if (currentChartType === 'candle') {
+              candleSeries && candleSeries.update({ time: ts, open: o, high: h, low: l, close: c });
+            } else {
+              candleSeries && candleSeries.update({ time: ts, value: c });
+            }
+            volumeSeries && volumeSeries.update({
+              time: ts,
+              value: v,
+              color: c >= o ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)',
+            });
+
+            // Update live price in header from kline (most accurate)
+            if (currentChartSym === sym) {
+              const el = document.getElementById('chartLivePrice');
+              if (el) {
+                el.textContent = formatPrice(c, sym);
+                el.style.color = c >= o ? 'var(--green)' : 'var(--red)';
+              }
+            }
+
+            if (confirmed) {
+              lastKlineBar = { time: ts, open: o, high: h, low: l, close: c };
+              dbg(`[ChartWS] Candle closed @ ${new Date(ts * 1000).toLocaleTimeString('vi-VN')}`, 'ok');
+            }
+          }
+        } catch (e) {
+          dbg('[ChartWS] Parse error: ' + e.message, 'err');
+        }
+      };
+
+      wsChart.onclose = (evt) => {
+        if (wsChartHb) { clearInterval(wsChartHb); wsChartHb = null; }
+        setChartLiveBadge('off');
+        dbg(`[ChartWS] Closed: code=${evt.code}`);
+        // Auto-reconnect only if chart still open for same symbol
+        if (currentChartSym === sym) {
+          setTimeout(() => {
+            if (currentChartSym === sym) {
+              dbg('[ChartWS] Reconnecting...');
+              connectChartWs(sym, currentTf);
+            }
+          }, 3000);
+        }
+      };
+
+      wsChart.onerror = () => {
+        setChartLiveBadge('off');
+        dbg('[ChartWS] WebSocket error', 'err');
+      };
+    }
+
+    function disconnectChartWs() {
+      if (wsChartHb) { clearInterval(wsChartHb); wsChartHb = null; }
+      if (wsChart) {
+        try { wsChart.onclose = null; wsChart.close(); } catch (e) { }
+        wsChart = null;
+      }
+      setChartLiveBadge('off');
+    }
+
+    function setTimeframe(tf) {
+      currentTf = tf;
+      document.querySelectorAll('.tf-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tf === tf);
+      });
+      if (currentChartSym) {
+        disconnectChartWs();          // stop old WS before reload
+        lastKlineBar = null;
+        initChartInstance();
+        loadKlines(currentChartSym, tf); // reconnects WS inside
+      }
+    }
+
+    function setChartType(type) {
+      currentChartType = type;
+      document.getElementById('btnCandle').classList.toggle('active', type === 'candle');
+      document.getElementById('btnLine').classList.toggle('active', type === 'line');
+      if (currentChartSym) {
+        disconnectChartWs();
+        lastKlineBar = null;
+        initChartInstance();
+        loadKlines(currentChartSym, currentTf);
+      }
+    }
 
     // ─── BOOT ─────────────────────────────────────────────────────
     initTheme(); // Thiết lập theme từ LocalStorage trước khi render UI
